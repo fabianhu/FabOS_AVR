@@ -45,14 +45,10 @@ extern FabOS_t MyOS;
 // OS function prototypes
 
 
-ISR  (OS_ScheduleISR)__attribute__ ((naked,signal)); // OS tick interrupt function (vector defined above)
-void OS_TaskCreateInt( uint8_t taskNum, void (*t)(), uint8_t *stack, uint8_t stackSize ) ; // Create the task internal
+// user API
 #define OS_TaskCreate( X, Y, Z )  OS_TaskCreateInt(X,Y, Z , sizeof(Z))// Macro to simplify the API
 void OS_TaskDestroy( int8_t taskNum ); // destroy task
 
-void OS_Reschedule(void)__attribute__ ((naked)); // internal: Trigger re-scheduling
-
-int8_t OS_GetNextTaskNumber(); // internal: get the next task to be run
 void OS_StartExecution() __attribute__ ((naked)) ; // Start the OS
 void OS_mBoxPost(int8_t,int16_t);
 int16_t OS_mBoxPend(int8_t) ;
@@ -65,8 +61,14 @@ void OS_SetAlarm(uint8_t TaskID, uint16_t numTicks ); // set Alarm and continue
 void OS_WaitAlarm(void); // set Alarm and continue
 
 
-void OS_CustomISRCode() ;
+void OS_CustomISRCode(); // do not call; just fill in your code.
 uint16_t OS_get_unused_Stack (uint8_t*);
+
+// internal OS functions, not to be called byt the user.
+ISR (OS_ScheduleISR)__attribute__ ((naked,signal)); // OS tick interrupt function (vector defined above)
+void OS_TaskCreateInt( uint8_t taskNum, void (*t)(), uint8_t *stack, uint8_t stackSize ) ; // Create the task internal
+void OS_Reschedule(void)__attribute__ ((naked)); // internal: Trigger re-scheduling
+int8_t OS_GetNextTaskNumber(); // internal: get the next task to be run
 
 
 

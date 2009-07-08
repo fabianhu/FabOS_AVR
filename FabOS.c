@@ -1,6 +1,8 @@
 #include "FabOS.h"
 
-FabOS_t MyOS; // the global instance of the struct
+FabOS_t MyOS = {
+	.MutexOwnedByTask={0xff,0xff}
+	}; // the global instance of the struct
 
 
 // the idle task does not have a stack-array defined. Instead it uses the unused "ordinary" stack at the end of RAM.
@@ -36,7 +38,7 @@ ISR  (OS_ScheduleISR) //__attribute__ ((naked,signal)) // 10 ms isr
 	saveCPUContext() ; 
 	MyOS.Stacks[MyOS.currTask] = SP ; // catch the SP before we (possibly) do anything with it.
 
-	OS_CustomISRCode(); // Caller of Custom ISR code to be executed inside this ISR
+	OS_CustomISRCode(); // Caller of Custom ISR code to be executed inside this ISR on the last tasks stack
 
 	uint8_t i;
 
@@ -58,6 +60,61 @@ ISR  (OS_ScheduleISR) //__attribute__ ((naked,signal)) // 10 ms isr
 	asm volatile("reti"); 
 }
 
+void OS_Reschedule(void) //with "__attribute__ ((naked))"
+{
+	cli();
+	saveCPUContext() ; 
+	MyOS.Stacks[MyOS.currTask] = SP ; // catch the SP before we (possibly) do anything with it.
+
+	uint8_t i;
+
+	for(i=0; i < NUMTASKS+1; i++ ) 
+	{ 
+		myOS.TaskWaitingMutex[i] = 0xff;
+	}
+	for(i=0; i < NUMMUTEX; i++ ) 
+	{ 
+		myOS.MutexOwnedByTask[i] = 0xff;
+	}
+
+	// task is to be run
+	MyOS.currTask = OS_GetNextTaskNumber();
+	SP = MyOS.Stacks[MyOS.currTask] ;// set Stack pointer
+	restoreCPUContext() ;
+	asm volatile("reti"); 
+}
+
+int8_t OS_GetNextTaskNumber() // which is the next task (ready and highest (= rightmost) prio)?
+{
+	uint8_t i,j,next= NUMTASKS; // NO task is ready, which one to execute?? the idle task !!;
+
+	j= MyOS.TaskReadyBits; // make working copy
+	
+	for (i=0;i<NUMTASKS;i++)
+	{
+		if (j & 0x01) // last bit set
+		{	
+			next =  i; // this task is the one to be executed
+			break;
+		}
+		else
+		{
+			j= (j>>1);
+		}
+	}
+
+	// now "next" is the next highest prio task.
+
+	// look in mutex waiting list, if any task is blocking "next"
+	if (MyOS.TaskWaitingMutex[next] != 0xff) // "next" is waiting for mutex
+	{
+		// which task is blocking it?
+		next = MyOS.MutexOwnedByTask[MyOS.TaskWaitingMutex[next]]; 
+		// the blocker gets the run.
+	}
+
+	return next;
+}
 
 
 void OS_TaskCreateInt( uint8_t taskNum, void (*t)(), uint8_t *stack, uint8_t stackSize ) 
@@ -85,6 +142,11 @@ void OS_TaskCreateInt( uint8_t taskNum, void (*t)(), uint8_t *stack, uint8_t sta
 }
 
 
+
+
+
+
+
 // Takes the task out of the list of tasks ready to run.
 // If the task is waiting on a mailbox or for a number of clock ticks
 // to pass, it is taken out of the mailbox wait list and the number of
@@ -103,34 +165,7 @@ void OS_TaskDestroy( int8_t taskNum )
 }
 
 
-void OS_Reschedule(void)
-{
-	saveCPUContext() ; 
-	MyOS.Stacks[MyOS.currTask] = SP ; // catch the SP before we (possibly) do anything with it.
 
-	// task is to be run
-	MyOS.currTask = OS_GetNextTaskNumber() ;// MyOS.taskResolutionTable[MyOS.TaskReadyBits]; //
-	SP = MyOS.Stacks[MyOS.currTask] ;// set Stack pointer
-	restoreCPUContext() ;
-	asm volatile("reti"); 
-}
-
-int8_t OS_GetNextTaskNumber() // which is the next task (ready and highest (= rightmost) prio)?
-{
-	uint8_t i,j;
-
-	j= MyOS.TaskReadyBits; // make working copy
-	
-	for (i=0;i<NUMTASKS;i++)
-	{
-		if (j & 0x01) // last bit set
-			return i; // this task is the one to be executed
-		else
-			j= (j>>1);
-	}
-	// NO task is ready, which one to execute??
-	return NUMTASKS; // the idle task !!
-}
 
 
 void OS_StartExecution() // naked!!
@@ -193,16 +228,17 @@ int16_t OS_mBoxPend( int8_t _mBoxNum )
 
 
 
-void OS_mutexTake(int8_t mutexNum) // number of mutexes limited to 8 !!!
+void OS_mutexGet(int8_t mutexNum)
 {
 	cli(); // critical section; prevent timer isr during the read-modify-write operation
-	while( MyOS.mutexStat & (1<<mutexNum))
+	while( MyOS.MutexOwnedByTask[mutexNum] != 0xff) // as long as anyone is the owner..
 	{
-		sei();
-		OS_Wait(1) ;
+		MyOS.TaskWaitingMutex[MyOS.currTask] = mutexNum; // set waiting info
+		OS_Reschedule(); // also re-enables interrupts...
 		cli();
 	}
-	MyOS.mutexStat |= 1<<mutexNum ;   // Set the stat bit in the mutex status byte.
+	MyOS.MutexOwnedByTask[mutexNum] = MyOS.currTask; // tell others, that I am the owner.
+	MyOS.TaskWaitingMutex[MyOS.currTask] = 0xff; // remove waiting info
 	sei();
 }
 
@@ -211,11 +247,40 @@ void OS_mutexTake(int8_t mutexNum) // number of mutexes limited to 8 !!!
 void OS_mutexRelease(int8_t mutexNum)
 {
 	cli(); // critical section; prevent timer isr during the read-modify-write operation
-	MyOS.mutexStat &= ~(1<<mutexNum) ;
+	MyOS.MutexOwnedByTask[mutexNum] = 0xff; // tell others, that no one is the owner.
 	OS_Reschedule() ; // re-schedule; will wake up waiting task, if higher prio.
 }
 
 
+/*
+Mutex Prinzip:
+
+Ein Task holt sich den Mutex
+Taskwechsel
+Ein anderer B hätte Ihn gerne
+Muss warten, Task A kommt dran
+Task A ist fertig und gibt an Task B ab, der ja immer noch eigentlich dran wäre.
+
+Der Task, der den Mutex haben will, muss schauen, ob ihn nicht ein anderer hat.
+Wenn nein, holt er sich den Mutex.
+Wenn ja, bekommt der Task, der den Mutex hat, den Prozessor.
+Wenn der fertig ist, ruft er den scheduler auf, der den nächsten Blockierer aufruft.
+
+Mutex zustände:
+Task schaut, ob der Mutex frei ist (0xff)
+Inhaber schreibt seine ID in den Mutex (Array), wenn er ihn hat.
+
+Reschedule ISR stößt auf eine Mutex-Waiting-Situation:
+Task prio rausfinden; 
+Wenn der Task, der dran wäre, nicht auf einen Mutex wartet, 
+oder einen hat, weiter wie normal.
+
+Wenn der Task, der dran wäre, auf einen Mutex wartet, 
+muss der Inhaber des Mutex drankommen. Nach Abschluss scheduled der nochmal.
+
+alles klar?
+
+*/
 
 
 // ************************** Waiting
@@ -228,8 +293,9 @@ void OS_Wait( uint16_t numTicks ) // Wait for a certain number of OS-ticks
 
 void OS_SetAlarm(uint8_t TaskID, uint16_t numTicks ) // set Alarm for the future and continue // set alarm to 0 disable it.
 // fixme maybe do a direct activation of other task, if 0 ???
+// other thought: 
 {
-	cli(); // critical section; re-enabled by reti in OS_Schedule()
+	cli(); // critical section;
 	MyOS.TickBlock[TaskID] = numTicks ;
 	sei();
 }
@@ -248,7 +314,8 @@ void OS_WaitAlarm(void) // Wait for an Alarm set by OS_SetAlarm
 
 
 // *********************** Buffers
-// fixme not yep part of OS !!!
+// fixme not yet part of OS !!!
+// must be mutexed seperately!!!
 
 #define BUFFER_SIZE 64 // must be 2^n (8, 16, 32, 64 ...)
 #define BUFFER_MASK (BUFFER_SIZE-1) // don't forget the braces
@@ -265,7 +332,7 @@ uint8_t BufferIn(uint8_t byte)
   if (buffer.read == next)
     return 1; // buffer full
   buffer.data[buffer.write] = byte;
-  // buffer.data[buffer.write & BUFFER_MASK] = byte; // absolut Sicher
+  // buffer.data[buffer.write & BUFFER_MASK] = byte; // absolute secure
   buffer.write = next;
   return 0;
 }

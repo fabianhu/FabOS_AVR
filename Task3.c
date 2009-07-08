@@ -5,9 +5,7 @@ uint16_t ret;
 
 void Task3() 
 {
-	uint32_t i;
-	
-uint32_t j,k,l,m;
+	uint32_t i,j,k,l,m;
 
 
 	while(1)
@@ -16,6 +14,7 @@ uint32_t j,k,l,m;
 		k = 5;
 		l = 6;
 			
+		OS_mutexGet(0);
 
 		for(i=0;i<333;i++)
 		{
@@ -26,10 +25,13 @@ uint32_t j,k,l,m;
 			asm("nop"); // waste of time
 		}
 
+		OS_mutexRelease(0);
+
+	#ifdef MBOXTEST
 		ret = OS_mBoxPend(1);
 
 		OS_mBoxPost(0, 1234);
-
+	#endif
 
 
 		OS_Wait(30);

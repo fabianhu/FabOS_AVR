@@ -12,6 +12,11 @@
 
 #define NUMMBOX 5
 #define NUMTASKS 3 // Numer of (CreateTasks) ; never >8
+#define NUMMUTEX 3
+
+#if NUMMUTEX > NUMTASKS 
+	#warning something is wrong fritz..
+#endif
 
 #define UNUSEDMASK 0xee
 
@@ -30,7 +35,9 @@ typedef struct FabOS_tag
 										//   bit 0 indicates wheather a task is waiting for that mailbox
 										//   bit 1 indicates wheather that mailbox contains valid data.
 	uint8_t 	mBoxWait[NUMMBOX] ; 	// Each element holds the,priority level of the task that's waiting on that mailbox, if any
-	uint8_t 	mutexStat ;				// Mutex-Status
+	uint8_t 	MutexOwnedByTask[NUMMUTEX] ;	// Mutex-owner (contains task ID of owner)
+	uint8_t 	TaskWaitingMutex[NUMTASKS+1] ;	// Mutex-waiters (contains mutex ID)
+
 	uint8_t 	currTask; 				// here the NUMBER of the actual active task is set.
 	uint8_t 	TaskReadyBits ; 		// here te task activation BITS are set. Task 0 (LSB) has the highest priority.
 	uint16_t 	Stacks[NUMTASKS+1];		// actual SP position addresses for the tasks AND the IDLE-task, which uses the ordinary stack!
@@ -53,7 +60,7 @@ void OS_StartExecution() __attribute__ ((naked)) ; // Start the OS
 void OS_mBoxPost(int8_t,int16_t);
 int16_t OS_mBoxPend(int8_t) ;
 
-void OS_mutexTake(int8_t mutexNum); // number of mutexes limited to 8 !!!
+void OS_mutexGet(int8_t mutexNum); // number of mutexes limited to 8 !!!
 void OS_mutexRelease(int8_t mutexNum);
 
 void OS_Wait( uint16_t ) ; // OS API: Wait for a certain number of OS ticks

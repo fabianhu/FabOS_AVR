@@ -9,11 +9,13 @@ uint32_t j,k,l,m;
 	
 	while(1)
 	{
+		OS_WaitAlarm();
+		
 		j = 4; 
 		k = 5;
 		l = 6;
 			
-
+		OS_mutexGet(0);
 		for(i=0;i<222;i++)
 		{
 			m= j*k+l;
@@ -24,7 +26,7 @@ uint32_t j,k,l,m;
 
 			asm("nop"); // waste of time
 		}
-		
+		OS_mutexRelease(0);		
 		
 		OS_Wait(20);
 	}

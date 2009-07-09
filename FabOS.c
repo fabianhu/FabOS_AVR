@@ -1,8 +1,6 @@
 #include "FabOS.h"
 
-FabOS_t MyOS = {
-	.MutexOwnedByTask={0xff,0xff}
-	}; // the global instance of the struct
+FabOS_t MyOS; // the global instance of the struct
 
 
 // the idle task does not have a stack-array defined. Instead it uses the unused "ordinary" stack at the end of RAM.
@@ -70,11 +68,11 @@ void OS_Reschedule(void) //with "__attribute__ ((naked))"
 
 	for(i=0; i < NUMTASKS+1; i++ ) 
 	{ 
-		myOS.TaskWaitingMutex[i] = 0xff;
+		MyOS.TaskWaitingMutex[i] = 0xff;
 	}
 	for(i=0; i < NUMMUTEX; i++ ) 
 	{ 
-		myOS.MutexOwnedByTask[i] = 0xff;
+		MyOS.MutexOwnedByTask[i] = 0xff;
 	}
 
 	// task is to be run
@@ -228,26 +226,26 @@ int16_t OS_mBoxPend( int8_t _mBoxNum )
 
 
 
-void OS_mutexGet(int8_t mutexNum)
+void OS_mutexGet(int8_t mutexID)
 {
 	cli(); // critical section; prevent timer isr during the read-modify-write operation
-	while( MyOS.MutexOwnedByTask[mutexNum] != 0xff) // as long as anyone is the owner..
+	while( MyOS.MutexOwnedByTask[mutexID] != 0xff) // as long as anyone is the owner..
 	{
-		MyOS.TaskWaitingMutex[MyOS.currTask] = mutexNum; // set waiting info
+		MyOS.TaskWaitingMutex[MyOS.currTask] = mutexID; // set waiting info
 		OS_Reschedule(); // also re-enables interrupts...
 		cli();
 	}
-	MyOS.MutexOwnedByTask[mutexNum] = MyOS.currTask; // tell others, that I am the owner.
+	MyOS.MutexOwnedByTask[mutexID] = MyOS.currTask; // tell others, that I am the owner.
 	MyOS.TaskWaitingMutex[MyOS.currTask] = 0xff; // remove waiting info
 	sei();
 }
 
 
 
-void OS_mutexRelease(int8_t mutexNum)
+void OS_mutexRelease(int8_t mutexID)
 {
 	cli(); // critical section; prevent timer isr during the read-modify-write operation
-	MyOS.MutexOwnedByTask[mutexNum] = 0xff; // tell others, that no one is the owner.
+	MyOS.MutexOwnedByTask[mutexID] = 0xff; // tell others, that no one is the owner.
 	OS_Reschedule() ; // re-schedule; will wake up waiting task, if higher prio.
 }
 

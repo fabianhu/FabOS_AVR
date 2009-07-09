@@ -60,8 +60,8 @@ void OS_StartExecution() __attribute__ ((naked)) ; // Start the OS
 void OS_mBoxPost(int8_t,int16_t);
 int16_t OS_mBoxPend(int8_t) ;
 
-void OS_mutexGet(int8_t mutexNum); // number of mutexes limited to 8 !!!
-void OS_mutexRelease(int8_t mutexNum);
+void OS_mutexGet(int8_t mutexID); // number of mutexes limited to NUMMUTEX !!!
+void OS_mutexRelease(int8_t mutexID);
 
 void OS_Wait( uint16_t ) ; // OS API: Wait for a certain number of OS ticks
 void OS_SetAlarm(uint8_t TaskID, uint16_t numTicks ); // set Alarm and continue

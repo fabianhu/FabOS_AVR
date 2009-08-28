@@ -66,15 +66,6 @@ void OS_Reschedule(void) //with "__attribute__ ((naked))"
 
 	uint8_t i;
 
-	for(i=0; i < NUMTASKS+1; i++ ) 
-	{ 
-		MyOS.TaskWaitingMutex[i] = 0xff;
-	}
-	for(i=0; i < NUMMUTEX; i++ ) 
-	{ 
-		MyOS.MutexOwnedByTask[i] = 0xff;
-	}
-
 	// task is to be run
 	MyOS.currTask = OS_GetNextTaskNumber();
 	SP = MyOS.Stacks[MyOS.currTask] ;// set Stack pointer
@@ -171,6 +162,15 @@ void OS_StartExecution() // naked!!
 	//store THIS context for idling!!
 	saveCPUContext() ;
 	MyOS.Stacks[NUMTASKS] = SP ; // catch the SP
+
+	for(i=0; i < NUMTASKS+1; i++ ) // init mutexes
+	{ 
+		MyOS.TaskWaitingMutex[i] = 0xff;
+	}
+	for(i=0; i < NUMMUTEX; i++ ) 
+	{ 
+		MyOS.MutexOwnedByTask[i] = 0xff;
+	}
 
 	MyOS.currTask = OS_GetNextTaskNumber(); // start with next task
 	SP = MyOS.Stacks[MyOS.currTask] ;

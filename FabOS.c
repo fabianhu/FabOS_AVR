@@ -64,8 +64,6 @@ void OS_Reschedule(void) //with "__attribute__ ((naked))"
 	saveCPUContext() ; 
 	MyOS.Stacks[MyOS.currTask] = SP ; // catch the SP before we (possibly) do anything with it.
 
-	uint8_t i;
-
 	// task is to be run
 	MyOS.currTask = OS_GetNextTaskNumber();
 	SP = MyOS.Stacks[MyOS.currTask] ;// set Stack pointer
@@ -100,6 +98,7 @@ int8_t OS_GetNextTaskNumber() // which is the next task (ready and highest (= ri
 		// which task is blocking it?
 		next = MyOS.MutexOwnedByTask[MyOS.TaskWaitingMutex[next]]; 
 		// the blocker gets the run.
+		// this is a priority inversion.
 	}
 
 	return next;
@@ -159,10 +158,8 @@ void OS_TaskDestroy( int8_t taskNum )
 
 void OS_StartExecution() // naked!!
 {
-	//store THIS context for idling!!
-	saveCPUContext() ;
-	MyOS.Stacks[NUMTASKS] = SP ; // catch the SP
-
+	
+	uint8_t i;
 	for(i=0; i < NUMTASKS+1; i++ ) // init mutexes
 	{ 
 		MyOS.TaskWaitingMutex[i] = 0xff;
@@ -171,6 +168,11 @@ void OS_StartExecution() // naked!!
 	{ 
 		MyOS.MutexOwnedByTask[i] = 0xff;
 	}
+
+	//store THIS context for idling!!
+	saveCPUContext() ;
+	MyOS.Stacks[NUMTASKS] = SP ; // catch the SP
+
 
 	MyOS.currTask = OS_GetNextTaskNumber(); // start with next task
 	SP = MyOS.Stacks[MyOS.currTask] ;

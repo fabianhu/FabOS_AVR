@@ -71,7 +71,7 @@ void OS_WaitAlarm(void); // set Alarm and continue
 void OS_CustomISRCode(); // do not call; just fill in your code.
 uint16_t OS_get_unused_Stack (uint8_t*);
 
-// internal OS functions, not to be called byt the user.
+// internal OS functions, not to be called by the user.
 ISR (OS_ScheduleISR)__attribute__ ((naked,signal)); // OS tick interrupt function (vector defined above)
 void OS_TaskCreateInt( uint8_t taskNum, void (*t)(), uint8_t *stack, uint8_t stackSize ) ; // Create the task internal
 void OS_Reschedule(void)__attribute__ ((naked)); // internal: Trigger re-scheduling

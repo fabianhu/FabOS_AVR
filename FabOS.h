@@ -45,6 +45,16 @@ typedef struct FabOS_tag
 
 } FabOS_t;
 
+// *********************** Buffers
+#define BUFFER_SIZE 64 // must be 2^n (8, 16, 32, 64 ...)
+#define BUFFER_MASK (BUFFER_SIZE-1) // don't forget the braces
+ 
+typedef struct OS_Queue_tag {
+  uint8_t read; // field with oldest content
+  uint8_t write; // always empty field
+  uint8_t data[BUFFER_SIZE];
+} OS_Queue_t; 
+
 
 extern FabOS_t MyOS;
 
@@ -70,6 +80,10 @@ void OS_WaitAlarm(void); // set Alarm and continue
 
 void OS_CustomISRCode(); // do not call; just fill in your code.
 uint16_t OS_get_unused_Stack (uint8_t*);
+
+uint8_t OS_QueueIn(OS_Queue_t* pQueue , uint8_t byte); // Put byte into queue, return 1 if q full.
+uint8_t OS_QueueOut(OS_Queue_t* pQueue, uint8_t *pByte); // Get a byte out of the queue, return 1 if q empty.
+
 
 // internal OS functions, not to be called by the user.
 ISR (OS_ScheduleISR)__attribute__ ((naked,signal)); // OS tick interrupt function (vector defined above)

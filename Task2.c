@@ -1,12 +1,13 @@
 #include "FabOS.h"
 
+extern OS_Queue_t Qtest;
 
 void Task2() 
 {
 	uint32_t i;
+	uint32_t j,k,l,m;
+	uint8_t r,e;
 
-uint32_t j,k,l,m;
-	
 	while(1)
 	{
 		OS_WaitAlarm();
@@ -29,5 +30,11 @@ uint32_t j,k,l,m;
 		OS_mutexRelease(0);		
 		
 		OS_Wait(20);
+
+
+		e = OS_QueueOut(&Qtest, &r); // Get a byte out of the queue, return 1 if q empty.
+
+		e++;
+
 	}
 }

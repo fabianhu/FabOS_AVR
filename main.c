@@ -23,12 +23,11 @@ int main(void)
 	OS_StartExecution() ;
 	while(1)
 	{
-		// THIS is the idle task which will be preemted
+		// THIS IS the idle task which will be preemted by all other tasks.
 		// NO OS-wait-API allowed here!!!
 		r = OS_get_unused_Stack (Task1Stack);
 		s = OS_get_unused_Stack (Task2Stack);
 		t = OS_get_unused_Stack (Task3Stack);
-
 
 	}
 
@@ -37,7 +36,7 @@ int main(void)
 void OS_CustomISRCode(void)
 {
 	// tick the RT-clock...
-	MyOS.OSTicks++;
+	MyOS.OSTicks++; // fixme check usage
 }
 
 void MCU_init(void)

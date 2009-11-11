@@ -1,9 +1,13 @@
 #include "FabOS.h"
 uint16_t ret;
 
+OS_Queue_t Qtest = {0, 0, {}};
+
 void Task1() 
 {
 	uint32_t i;
+	uint8_t z = 0;
+
 		OS_SetAlarm(MyOS.currTask,1);
 	
 	while(1)
@@ -29,7 +33,13 @@ void Task1()
 
 	#endif
 		
-		//OS_Wait(10);
+		
+		ret = OS_QueueIn(&Qtest , z++); // Put byte into queue, return 1 if q full.
+
+ 
+		
+
+		OS_Wait(10);
 	}
 
 }

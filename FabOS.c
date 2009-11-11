@@ -38,15 +38,16 @@ ISR  (OS_ScheduleISR) //__attribute__ ((naked,signal)) // 10 ms isr
 
 	OS_CustomISRCode(); // Caller of Custom ISR code to be executed inside this ISR on the last tasks stack
 
-	uint8_t i;
+	uint8_t taskID;
 
-	for(i=0; i < NUMTASKS; i++ ) 
+	// handling of OS_Wait
+	for(taskID=0; taskID < NUMTASKS; taskID++ ) 
 	{ 
-		if( MyOS.TickBlock[i] > 0 ) // this task has to wait
+		if( MyOS.TickBlock[taskID] > 0 ) // this task has to wait
 		{
-			if( --MyOS.TickBlock[i] == 0 ) // if now task is ready, it will be activated.
+			if( --MyOS.TickBlock[taskID] == 0 ) // if now task is ready, it will be activated.
 			{
-				MyOS.TaskReadyBits |= 1<<(i) ; // now it is finished with waiting
+				MyOS.TaskReadyBits |= 1<<(taskID) ; // now it is finished with waiting
 			}
 		}
 	}
@@ -66,6 +67,7 @@ void OS_Reschedule(void) //with "__attribute__ ((naked))"
 
 	// task is to be run
 	MyOS.currTask = OS_GetNextTaskNumber();
+
 	SP = MyOS.Stacks[MyOS.currTask] ;// set Stack pointer
 	restoreCPUContext() ;
 	asm volatile("reti"); 
@@ -305,7 +307,7 @@ void OS_WaitAlarm(void) // Wait for an Alarm set by OS_SetAlarm
 	cli(); // critical section; re-enabled by reti in OS_Schedule()
 	if(MyOS.TickBlock[MyOS.currTask] > 0)
 	{
-		MyOS.TaskReadyBits &= ~(1<<MyOS.currTask) ;  // Disable the task
+		MyOS.TaskReadyBits &= ~(1<<MyOS.currTask) ;  // Disable this task
 		OS_Reschedule();  // re-schedule; let the others run...
 	}
 	else
@@ -313,37 +315,35 @@ void OS_WaitAlarm(void) // Wait for an Alarm set by OS_SetAlarm
 }
 
 
-// *********************** Buffers
-// fixme not yet part of OS !!!
-// must be mutexed seperately!!!
-
-#define BUFFER_SIZE 64 // must be 2^n (8, 16, 32, 64 ...)
-#define BUFFER_MASK (BUFFER_SIZE-1) // don't forget the braces
- 
-struct Buffer {
-  uint8_t read; // field with oldest content
-  uint8_t write; // always empty field
-  uint8_t data[BUFFER_SIZE];
-} buffer = {0, 0, {}};
- 
-uint8_t BufferIn(uint8_t byte)
+uint8_t OS_QueueIn(OS_Queue_t* pQueue , uint8_t byte) // Put byte into queue, return 1 if q full.
 {
-  uint8_t next = ((buffer.write + 1) & BUFFER_MASK);
-  if (buffer.read == next)
-    return 1; // buffer full
-  buffer.data[buffer.write] = byte;
-  // buffer.data[buffer.write & BUFFER_MASK] = byte; // absolute secure
-  buffer.write = next;
-  return 0;
+	uint8_t next;
+	cli(); // critical section;
+	next = ((pQueue->write + 1) & BUFFER_MASK);
+	if (pQueue->read == next)
+	{
+		sei();
+		return 1; // buffer full
+	}
+	pQueue->data[pQueue->write] = byte;
+	// buffer.data[buffer.write & BUFFER_MASK] = byte; // absolute secure
+	pQueue->write = next;
+	sei();
+	return 0;
 }
  
-uint8_t BufferOut(uint8_t *pByte)
+uint8_t OS_QueueOut(OS_Queue_t* pQueue, uint8_t *pByte) // Get a byte out of the queue, return 1 if q empty.
 {
-  if (buffer.read == buffer.write)
-    return 1; // buffer empty
-  *pByte = buffer.data[buffer.read];
-  buffer.read = (buffer.read+1) & BUFFER_MASK;
-  return 0;
+	cli(); // critical section;
+	if (pQueue->read == pQueue->write)
+	{
+		sei();
+		return 1; // buffer empty
+	}
+	*pByte = pQueue->data[pQueue->read];
+	pQueue->read = (pQueue->read+1) & BUFFER_MASK;
+	sei();
+	return 0;
 }
 
 

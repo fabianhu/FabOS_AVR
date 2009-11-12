@@ -1,9 +1,10 @@
 #include "FabOS.h"
-
+#ifdef TESTSUITE
 extern OS_Queue_t Qtest;
 
 void Task2() 
 {
+
 	uint32_t i;
 	uint32_t j,k,l,m;
 	uint8_t r,e;
@@ -37,4 +38,7 @@ void Task2()
 		e++;
 
 	}
+
 }
+
+#endif

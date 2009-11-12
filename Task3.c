@@ -1,10 +1,11 @@
 #include "FabOS.h"
 
-
+#ifdef TESTSUITE
 uint16_t ret;
 
 void Task3() 
 {
+
 	uint32_t i,j,k,l,m;
 
 
@@ -36,4 +37,6 @@ void Task3()
 
 		OS_Wait(30);
 	}
+
 }
+#endif

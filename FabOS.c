@@ -6,16 +6,6 @@ FabOS_t MyOS; // the global instance of the struct
 // the idle task does not have a stack-array defined. Instead it uses the unused "ordinary" stack at the end of RAM.
 
 
-/*
-implement the following:
-- signal (wait for) including timeout
-- cyclic alarm OK (more or less)
-- mutex OK
-- messages / queues
-
-*/
-
-
 // -mtiny-stack ??
 // 
 // register unsigned char counter asm("r3");  Typically, it should be safe to use r2 through r7 that way.
@@ -34,18 +24,23 @@ implement the following:
 ISR  (OS_ScheduleISR) //__attribute__ ((naked,signal)) // 10 ms isr
 {
 	saveCPUContext() ; 
-	MyOS.Stacks[MyOS.currTask] = SP ; // catch the SP before we (possibly) do anything with it.
+	MyOS.Stacks[MyOS.CurrTask] = SP ; // catch the SP before we (possibly) do anything with it.
 
+#if OS_USECLOCK == 1
+	// tick the RT-clock...
+	MyOS.OSTicks++; 
+#endif
+	
 	OS_CustomISRCode(); // Caller of Custom ISR code to be executed inside this ISR on the last tasks stack
 
 	uint8_t taskID;
 
-	// handling of OS_Wait
+	// handling of OS_Wait / Alarms
 	for(taskID=0; taskID < NUMTASKS; taskID++ ) 
 	{ 
-		if( MyOS.TickBlock[taskID] > 0 ) // this task has to wait
+		if( MyOS.AlarmTicks[taskID] > 0 ) // this task has to wait
 		{
-			if( --MyOS.TickBlock[taskID] == 0 ) // if now task is ready, it will be activated.
+			if( --MyOS.AlarmTicks[taskID] == 0 ) // if now task is ready, it will be activated.
 			{
 				MyOS.TaskReadyBits |= 1<<(taskID) ; // now it is finished with waiting
 			}
@@ -53,8 +48,8 @@ ISR  (OS_ScheduleISR) //__attribute__ ((naked,signal)) // 10 ms isr
 	}
 
 	// task is to be run
-	MyOS.currTask = OS_GetNextTaskNumber() ;
-	SP = MyOS.Stacks[MyOS.currTask] ;
+	MyOS.CurrTask = OS_GetNextTaskNumber() ;
+	SP = MyOS.Stacks[MyOS.CurrTask] ;
 	restoreCPUContext() ;
 	asm volatile("reti"); 
 }
@@ -63,44 +58,44 @@ void OS_Reschedule(void) //with "__attribute__ ((naked))"
 {
 	cli();
 	saveCPUContext() ; 
-	MyOS.Stacks[MyOS.currTask] = SP ; // catch the SP before we (possibly) do anything with it.
+	MyOS.Stacks[MyOS.CurrTask] = SP ; // catch the SP before we (possibly) do anything with it.
 
 	// task is to be run
-	MyOS.currTask = OS_GetNextTaskNumber();
+	MyOS.CurrTask = OS_GetNextTaskNumber();
 
-	SP = MyOS.Stacks[MyOS.currTask] ;// set Stack pointer
+	SP = MyOS.Stacks[MyOS.CurrTask] ;// set Stack pointer
 	restoreCPUContext() ;
 	asm volatile("reti"); 
 }
 
 int8_t OS_GetNextTaskNumber() // which is the next task (ready and highest (= rightmost) prio)?
 {
-	uint8_t i,j,next= NUMTASKS; // NO task is ready, which one to execute?? the idle task !!;
+	uint8_t Task,ReadyMask,next= NUMTASKS; // NO task is ready, which one to execute?? the idle task !!;
 
-	j= MyOS.TaskReadyBits; // make working copy
+	ReadyMask= MyOS.TaskReadyBits; // make working copy
 	
-	for (i=0;i<NUMTASKS;i++)
+	for (Task=0;Task<NUMTASKS;Task++)
 	{
-		if (j & 0x01) // last bit set
+		if (ReadyMask & 0x01) // last bit set
 		{	
-			next =  i; // this task is the one to be executed
+			next =  Task; // this task is the one to be executed
 			break;
 		}
 		else
 		{
-			j= (j>>1);
+			ReadyMask= (ReadyMask>>1); // shift to right; i and the shift is synchronous.
 		}
 	}
 
 	// now "next" is the next highest prio task.
 
-	// look in mutex waiting list, if any task is blocking "next"
-	if (MyOS.TaskWaitingMutex[next] != 0xff) // "next" is waiting for mutex
+	// look in mutex waiting list, if any task is blocking "next", then "next" must not run.
+	if (MyOS.MutexTaskWaiting[next] != 0xff) // "next" is waiting for mutex
 	{
 		// which task is blocking it?
-		next = MyOS.MutexOwnedByTask[MyOS.TaskWaitingMutex[next]]; 
+		next = MyOS.MutexOwnedByTask[MyOS.MutexTaskWaiting[next]]; 
 		// the blocker gets the run.
-		// this is a priority inversion.
+		// this is also a priority inversion.
 	}
 
 	return next;
@@ -110,11 +105,13 @@ int8_t OS_GetNextTaskNumber() // which is the next task (ready and highest (= ri
 void OS_TaskCreateInt( uint8_t taskNum, void (*t)(), uint8_t *stack, uint8_t stackSize ) 
 {
 	uint16_t z ;
+#if OS_USECHECKS == 1
 	// "colorize" the stacks
 	for (z=0;z<stackSize;z++)
 	{
 		stack[z] = UNUSEDMASK;
 	}
+#endif
 
 	for (z=stackSize-35;z<stackSize;z++) // clear the stack frame space (should already be, but you never know...)
 	{
@@ -133,38 +130,29 @@ void OS_TaskCreateInt( uint8_t taskNum, void (*t)(), uint8_t *stack, uint8_t sta
 
 
 
-
-
-
-
 // Takes the task out of the list of tasks ready to run.
 // If the task is waiting on a mailbox or for a number of clock ticks
 // to pass, it is taken out of the mailbox wait list and the number of
 // clock ticks it has to wait for to be rescheduled is set to zero.
 void OS_TaskDestroy( int8_t taskNum ) 
 {
-	register uint8_t temp ;
-
 	MyOS.TaskReadyBits &= ~(1<<taskNum) ;
 
-	for( temp = 0 ; temp < NUMMBOX ; temp++ ) {
-	  if( MyOS.mBoxWait[temp] == taskNum ) MyOS.mBoxWait[temp] = 0 ;
-	}
-	MyOS.TickBlock[taskNum] = 0 ;
+	MyOS.EventMask[taskNum]=0;
+	MyOS.EventWaiting[taskNum]=0;
 
+	MyOS.AlarmTicks[taskNum] = 0 ;
 }
 
 
-
-
-
-void OS_StartExecution() // naked!!
+// Start the operating system
+void OS_StartExecution() // __attribute__ ((naked));
 {
 	
 	uint8_t i;
 	for(i=0; i < NUMTASKS+1; i++ ) // init mutexes
 	{ 
-		MyOS.TaskWaitingMutex[i] = 0xff;
+		MyOS.MutexTaskWaiting[i] = 0xff;
 	}
 	for(i=0; i < NUMMUTEX; i++ ) 
 	{ 
@@ -172,80 +160,71 @@ void OS_StartExecution() // naked!!
 	}
 
 	//store THIS context for idling!!
-	saveCPUContext() ;
-	MyOS.Stacks[NUMTASKS] = SP ; // catch the SP
-
-
-	MyOS.currTask = OS_GetNextTaskNumber(); // start with next task
-	SP = MyOS.Stacks[MyOS.currTask] ;
-	restoreCPUContext();
-	asm volatile( "reti" ) ;
+	MyOS.CurrTask = NUMTASKS;
+	OS_Reschedule();
 }
 
 
-// *************** MBOX
-
-
-void OS_mBoxPost( int8_t _mBoxNum, int16_t _data )
+void OS_SetEvent(uint8_t EventMask, uint8_t TaskID) // Set one or more events
 {
 	cli();
-	MyOS.mBoxData[_mBoxNum] = _data ;   // Put the data in the mailbox.
+	MyOS.EventMask[TaskID] |= EventMask;
 
-	if( (MyOS.mBoxStat[_mBoxNum] & 0x01) != 0 )
-	{  // If a task is already waiting on this mailbox.
-		MyOS.TaskReadyBits |= 1<<MyOS.mBoxWait[_mBoxNum] ;   // Make the task ready to run again.
-		MyOS.mBoxStat[_mBoxNum] &= ~0b00000011 ;   // Clear the valid data bit and the task waiting bit
+	if(EventMask & MyOS.EventWaiting[TaskID]) // Targeted task is waiting for this event
+	{
+		// wake up this task directly
+		MyOS.TaskReadyBits |= 1<<TaskID ;   // Make the task ready to run again.
 		OS_Reschedule() ; // re-schedule; will wake up the sleeper directly, if higher prio.
-	} 
-	else 
-	{ // If no task is waiting for data, put the data in the box and return.
-		MyOS.mBoxStat[_mBoxNum] |= 0x02 ;  // Indicate that the mailbox contains valid data
-	}
-	sei();
-	// return with no other action!
-}
-
-
-int16_t OS_mBoxPend( int8_t _mBoxNum )
-{
-	cli();
-	if( (MyOS.mBoxStat[_mBoxNum] & 0x02) != 0 )
-	{  // if valid data is present in the mailbox
-		MyOS.mBoxStat[_mBoxNum] &= ~0b00000011 ;   // Clear the valid data bit and the task waiting bit
-		sei(); // no re-schedule, as there was data in the MB	
 	}
 	else
 	{
-		MyOS.mBoxStat[_mBoxNum] |= 0x01 ;   // Indicate that a task is waiting for the mailbox
-		MyOS.mBoxWait[_mBoxNum] = MyOS.currTask ;         // tell which task is waiting for the mailbox.
-		MyOS.TaskReadyBits &= ~(1<<MyOS.currTask) ;     // indicate that this task is not ready to run.
-		
-		OS_Reschedule() ; // re-schedule; will be waked up by "post"
+		// remember the event and task continues on its call of WaitEvent directly. 
+		sei();
 	}
-		return MyOS.mBoxData[_mBoxNum] ;
-} 
+}
+
+uint8_t OS_WaitEvent(uint8_t EventMask) //returns event(s), which lead to execution
+{
+	uint8_t ret;
+	cli();
+	MyOS.EventWaiting[MyOS.CurrTask] |= EventMask;
+	
+	if(!(EventMask & MyOS.EventMask[MyOS.CurrTask])) // This task is Not waiting for this event
+	{
+		// no event yet... waiting
+		MyOS.TaskReadyBits &= ~(1<<MyOS.CurrTask) ;     // indicate that this task is not ready to run.
+		OS_Reschedule() ; // re-schedule; will be waked up here by "SetEvent" or alarm
+	}
+	ret = MyOS.EventMask[MyOS.CurrTask] & EventMask;
+	MyOS.EventWaiting[MyOS.CurrTask] = 0; // no more waiting!
+	// clear the events:
+	MyOS.EventMask[MyOS.CurrTask] &= ~EventMask; // the actual events minus the ones, which have been waited for 
+	sei();
+	return ret;
+}
+
 
 
 // ************************** MUTEX
 
 
-
+// Try to get a mutex; execution will block as long the mutex is occupied.
 void OS_mutexGet(int8_t mutexID)
 {
 	cli(); // critical section; prevent timer isr during the read-modify-write operation
 	while( MyOS.MutexOwnedByTask[mutexID] != 0xff) // as long as anyone is the owner..
 	{
-		MyOS.TaskWaitingMutex[MyOS.currTask] = mutexID; // set waiting info
+		MyOS.MutexTaskWaiting[MyOS.CurrTask] = mutexID; // set waiting info for priority inversion of scheduler
 		OS_Reschedule(); // also re-enables interrupts...
 		cli();
 	}
-	MyOS.MutexOwnedByTask[mutexID] = MyOS.currTask; // tell others, that I am the owner.
-	MyOS.TaskWaitingMutex[MyOS.currTask] = 0xff; // remove waiting info
+	MyOS.MutexOwnedByTask[mutexID] = MyOS.CurrTask; // tell others, that I am the owner.
+	MyOS.MutexTaskWaiting[MyOS.CurrTask] = 0xff; // remove waiting info
 	sei();
 }
 
 
-
+// release the occupied mutex
 void OS_mutexRelease(int8_t mutexID)
 {
 	cli(); // critical section; prevent timer isr during the read-modify-write operation
@@ -289,29 +268,29 @@ alles klar?
 
 void OS_Wait( uint16_t numTicks ) // Wait for a certain number of OS-ticks
 {
-	OS_SetAlarm(MyOS.currTask, numTicks);
+	OS_SetAlarm(MyOS.CurrTask, numTicks);
 	OS_WaitAlarm();
 }
 
 void OS_SetAlarm(uint8_t TaskID, uint16_t numTicks ) // set Alarm for the future and continue // set alarm to 0 disable it.
-// fixme maybe do a direct activation of other task, if 0 ???
-// other thought: 
 {
 	cli(); // critical section;
-	MyOS.TickBlock[TaskID] = numTicks ;
+	MyOS.AlarmTicks[TaskID] = numTicks ;
 	sei();
 }
 
-void OS_WaitAlarm(void) // Wait for an Alarm set by OS_SetAlarm
+void OS_WaitAlarm(void) // Wait for an Alarm set by OS_SetAlarm (1 = wait to the next timer interrupt)
 {
 	cli(); // critical section; re-enabled by reti in OS_Schedule()
-	if(MyOS.TickBlock[MyOS.currTask] > 0)
+	if(MyOS.AlarmTicks[MyOS.CurrTask] > 0) // fixme this "if" could be possibly omitted.
 	{
-		MyOS.TaskReadyBits &= ~(1<<MyOS.currTask) ;  // Disable this task
+		MyOS.TaskReadyBits &= ~(1<<MyOS.CurrTask) ;  // Disable this task
 		OS_Reschedule();  // re-schedule; let the others run...
 	}
 	else
-	sei();
+	{
+		sei(); // just continue
+	}
 }
 
 
@@ -391,6 +370,7 @@ uint8_t BufferOut(uint8_t *pByte)
 // *********************** Aux functions
 
 
+#if OS_USECHECKS == 1
 // give the free stack space for any task in function result.
 uint16_t OS_get_unused_Stack (uint8_t* pStack)
 {
@@ -407,5 +387,14 @@ uint16_t OS_get_unused_Stack (uint8_t* pStack)
 
       return unused;
 }
+#endif
 
-
+#if OS_USECLOCK == 1
+// fills given variable with the OS ticks since start.
+void OS_GetTicks(uint32_t* pTime) 
+{
+	cli();
+		*pTime = MyOS.OSTicks;
+	sei();
+}
+#endif

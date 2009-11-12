@@ -1,19 +1,22 @@
 #include "FabOS.h"
+#ifdef TESTSUITE
+
 uint16_t ret;
 
 OS_Queue_t Qtest = {0, 0, {}};
 
 void Task1() 
 {
+
 	uint32_t i;
 	uint8_t z = 0;
 
-		OS_SetAlarm(MyOS.currTask,1);
+		OS_SetAlarm(MyOS.CurrTask,1);
 	
 	while(1)
 	{
 		OS_WaitAlarm();
-		OS_SetAlarm(MyOS.currTask,10);
+		OS_SetAlarm(MyOS.CurrTask,10);
 	
 		OS_mutexGet(0);
 		
@@ -43,3 +46,5 @@ void Task1()
 	}
 
 }
+
+#endif

@@ -30,7 +30,7 @@ void Task2()
 		}
 		OS_mutexRelease(0);		
 		
-		OS_Wait(20);
+		OS_WaitTicks(20);
 
 
 		e = OS_QueueOut(&Qtest, &r); // Get a byte out of the queue, return 1 if q empty.

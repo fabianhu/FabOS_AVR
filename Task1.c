@@ -42,7 +42,7 @@ void Task1()
  
 		
 
-		OS_Wait(10);
+		OS_WaitTicks(10);
 	}
 
 }

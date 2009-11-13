@@ -35,7 +35,7 @@ void Task3()
 	#endif
 
 
-		OS_Wait(30);
+		OS_WaitTicks(30);
 	}
 
 }

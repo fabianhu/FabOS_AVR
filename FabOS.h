@@ -10,13 +10,13 @@
 
 // *********  USER Configurable Block BEGIN
 
-#define NUMTASKS 3 // Number of (Create)Tasks ; never >8
+#define NUMTASKS 3 // Number of (Create)Tasks ; never >8 (idle task is not counted here!)
 #define NUMMUTEX 3 // Number of Mutexes
 
 #define UNUSEDMASK 0xEE // unused Stack RAM will be filled with this byte.
 
-#define OS_USECLOCK 1
-#define OS_USECHECKS 1
+#define OS_USECLOCK 0
+#define OS_USECHECKS 0
 
 #define OS_ScheduleISR TIMER1_COMPA_vect // Interrupt Vector used for OS-tick generation (check out CustomOS_ISRCode if you want to add isr code)
 
@@ -60,39 +60,49 @@ extern FabOS_t MyOS;
 
 
 // user API
-#define OS_TaskCreate( X, Y, Z )  OS_TaskCreateInt(X,Y, Z , sizeof(Z))// Macro to simplify the API
-void OS_TaskDestroy( int8_t taskNum ); // destroy task
+void OS_CustomISRCode(); // do not call; just fill in your code.
 
-void OS_StartExecution() __attribute__ ((naked)) ; // Start the OS
+#define OS_TaskCreate( X, Y, Z )  OS_TaskCreateInt(X,Y, Z , sizeof(Z))// Macro to simplify the API
+
+void OS_TaskDestroy( int8_t taskNum ); // Takes the task out of the list of tasks ready to run.
+
+void OS_StartExecution()__attribute__ ((naked)); // Start the operating system
 
 void OS_SetEvent(uint8_t EventMask, uint8_t TaskID); // Set one or more events
+
 uint8_t OS_WaitEvent(uint8_t EventMask); //returns event(s) in a mask, which lead to execution
 
 void OS_mutexGet(int8_t mutexID); // number of mutexes limited to NUMMUTEX !!!
-void OS_mutexRelease(int8_t mutexID);
+				// Try to get a mutex; execution will block as long the mutex is occupied. If it is free, it is occupied afterwards.
 
-void OS_Wait( uint16_t ) ; // OS API: Wait for a certain number of OS ticks
-void OS_SetAlarm(uint8_t TaskID, uint16_t numTicks ); // set Alarm and continue
-void OS_WaitAlarm(void); // set Alarm and continue
+void OS_mutexRelease(int8_t mutexID); // release the occupied mutex
 
-void OS_CustomISRCode(); // do not call; just fill in your code.
+void OS_WaitTicks( uint16_t numTicks ); // Wait for a certain number of OS-ticks(1 = wait to the next timer interrupt);
+
+void OS_SetAlarm(uint8_t TaskID, uint16_t numTicks ); // set Alarm for the future and continue // set alarm to 0 disable it.
+
+void OS_WaitAlarm(void); // Wait for an Alarm set by OS_SetAlarm 
+
+uint8_t OS_QueueIn(OS_Queue_t* pQueue , uint8_t byte); // Put byte into queue, return 1 if q full.
+
+uint8_t OS_QueueOut(OS_Queue_t* pQueue, uint8_t *pByte); // Get a byte out of the queue, return 1 if q empty.
 
 #if OS_USECHECKS == 1
-uint16_t OS_Get_Unused_Stack (uint8_t*);
+// give the free stack space for any task in function result.
+uint16_t OS_get_unused_Stack (uint8_t* pStack);
 #endif
+
 #if OS_USECLOCK == 1
 void OS_GetTicks(uint32_t* pTime); // fills given variable with the OS ticks since start.
 #endif
 
-uint8_t OS_QueueIn(OS_Queue_t* pQueue , uint8_t byte); // Put byte into queue, return 1 if q full.
-uint8_t OS_QueueOut(OS_Queue_t* pQueue, uint8_t *pByte); // Get a byte out of the queue, return 1 if q empty.
-
 
 // internal OS functions, not to be called by the user.
-ISR (OS_ScheduleISR)__attribute__ ((naked,signal)); // OS tick interrupt function (vector defined above)
+ISR (OS_ScheduleISR)__attribute__ ((naked,signal)); // OS tick interrupt function (vector #defined above)
 void OS_TaskCreateInt( uint8_t taskNum, void (*t)(), uint8_t *stack, uint8_t stackSize ) ; // Create the task internal
 void OS_Reschedule(void)__attribute__ ((naked)); // internal: Trigger re-scheduling
-int8_t OS_GetNextTaskNumber(); // internal: get the next task to be run
+int8_t OS_GetNextTaskNumber(); // internal: get the next task to be run// which is the next task (ready and highest (= rightmost); prio);?
+
 
 
 

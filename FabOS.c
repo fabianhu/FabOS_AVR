@@ -208,7 +208,7 @@ uint8_t OS_WaitEvent(uint8_t EventMask) //returns event(s), which lead to execut
 // ************************** MUTEX
 
 
-// Try to get a mutex; execution will block as long the mutex is occupied.
+// Try to get a mutex; execution will block as long the mutex is occupied. If it is free, it is occupied afterwards.
 void OS_mutexGet(int8_t mutexID)
 {
 	cli(); // critical section; prevent timer isr during the read-modify-write operation
@@ -266,7 +266,7 @@ alles klar?
 
 // ************************** Waiting
 
-void OS_Wait( uint16_t numTicks ) // Wait for a certain number of OS-ticks
+void OS_WaitTicks( uint16_t numTicks ) // Wait for a certain number of OS-ticks (1 = wait to the next timer interrupt)
 {
 	OS_SetAlarm(MyOS.CurrTask, numTicks);
 	OS_WaitAlarm();
@@ -279,7 +279,7 @@ void OS_SetAlarm(uint8_t TaskID, uint16_t numTicks ) // set Alarm for the future
 	sei();
 }
 
-void OS_WaitAlarm(void) // Wait for an Alarm set by OS_SetAlarm (1 = wait to the next timer interrupt)
+void OS_WaitAlarm(void) // Wait for an Alarm set by OS_SetAlarm 
 {
 	cli(); // critical section; re-enabled by reti in OS_Schedule()
 	if(MyOS.AlarmTicks[MyOS.CurrTask] > 0) // fixme this "if" could be possibly omitted.

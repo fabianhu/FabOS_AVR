@@ -15,7 +15,6 @@ FabOS_t MyOS; // the global instance of the struct
 
 // **************************** TIMER
 
-
 // ISR(TIMER0_OVF_vect) __attribute__ ((naked,signal));
 // Prototype for the INT0 ISR is in FabOS.h. The naked attribute
 // tells the compiler not to add code to push the registers
@@ -54,6 +53,8 @@ ISR  (OS_ScheduleISR) //__attribute__ ((naked,signal)) // 10 ms isr
 	asm volatile("reti"); 
 }
 
+// ************************** OS_INTERNALS
+
 void OS_Reschedule(void) //with "__attribute__ ((naked))"
 {
 	cli();
@@ -86,7 +87,6 @@ int8_t OS_GetNextTaskNumber() // which is the next task (ready and highest (= ri
 			ReadyMask= (ReadyMask>>1); // shift to right; i and the shift is synchronous.
 		}
 	}
-
 	// now "next" is the next highest prio task.
 
 	// look in mutex waiting list, if any task is blocking "next", then "next" must not run.
@@ -97,11 +97,10 @@ int8_t OS_GetNextTaskNumber() // which is the next task (ready and highest (= ri
 		// the blocker gets the run.
 		// this is also a priority inversion.
 	}
-
 	return next;
 }
 
-
+// internal task create function
 void OS_TaskCreateInt( uint8_t taskNum, void (*t)(), uint8_t *stack, uint8_t stackSize ) 
 {
 	uint16_t z ;
@@ -165,6 +164,33 @@ void OS_StartExecution() // __attribute__ ((naked));
 }
 
 
+// ************************** MUTEX
+
+// Try to get a mutex; execution will block as long the mutex is occupied. If it is free, it is occupied afterwards.
+void OS_mutexGet(int8_t mutexID)
+{
+	cli(); // critical section; prevent timer isr during the read-modify-write operation
+	while( MyOS.MutexOwnedByTask[mutexID] != 0xff) // as long as anyone is the owner..
+	{
+		MyOS.MutexTaskWaiting[MyOS.CurrTask] = mutexID; // set waiting info for priority inversion of scheduler
+		OS_Reschedule(); // also re-enables interrupts...
+		cli();
+	}
+	MyOS.MutexOwnedByTask[mutexID] = MyOS.CurrTask; // tell others, that I am the owner.
+	MyOS.MutexTaskWaiting[MyOS.CurrTask] = 0xff; // remove waiting info
+	sei();
+}
+
+// release the occupied mutex
+void OS_mutexRelease(int8_t mutexID)
+{
+	cli(); // critical section; prevent timer isr during the read-modify-write operation
+	MyOS.MutexOwnedByTask[mutexID] = 0xff; // tell others, that no one is the owner.
+	OS_Reschedule() ; // re-schedule; will wake up waiting task, if higher prio.
+}
+
+// ************************** EVENTS
+
 void OS_SetEvent(uint8_t EventMask, uint8_t TaskID) // Set one or more events
 {
 	cli();
@@ -205,34 +231,6 @@ uint8_t OS_WaitEvent(uint8_t EventMask) //returns event(s), which lead to execut
 
 
 
-// ************************** MUTEX
-
-
-// Try to get a mutex; execution will block as long the mutex is occupied. If it is free, it is occupied afterwards.
-void OS_mutexGet(int8_t mutexID)
-{
-	cli(); // critical section; prevent timer isr during the read-modify-write operation
-	while( MyOS.MutexOwnedByTask[mutexID] != 0xff) // as long as anyone is the owner..
-	{
-		MyOS.MutexTaskWaiting[MyOS.CurrTask] = mutexID; // set waiting info for priority inversion of scheduler
-		OS_Reschedule(); // also re-enables interrupts...
-		cli();
-	}
-	MyOS.MutexOwnedByTask[mutexID] = MyOS.CurrTask; // tell others, that I am the owner.
-	MyOS.MutexTaskWaiting[MyOS.CurrTask] = 0xff; // remove waiting info
-	sei();
-}
-
-
-// release the occupied mutex
-void OS_mutexRelease(int8_t mutexID)
-{
-	cli(); // critical section; prevent timer isr during the read-modify-write operation
-	MyOS.MutexOwnedByTask[mutexID] = 0xff; // tell others, that no one is the owner.
-	OS_Reschedule() ; // re-schedule; will wake up waiting task, if higher prio.
-}
-
-
 /*
 Mutex Prinzip:
 
@@ -264,7 +262,7 @@ alles klar?
 */
 
 
-// ************************** Waiting
+// ************************** ALARMS
 
 void OS_WaitTicks( uint16_t numTicks ) // Wait for a certain number of OS-ticks (1 = wait to the next timer interrupt)
 {
@@ -293,6 +291,7 @@ void OS_WaitAlarm(void) // Wait for an Alarm set by OS_SetAlarm
 	}
 }
 
+// ************************** QUEUES
 
 uint8_t OS_QueueIn(OS_Queue_t* pQueue , uint8_t byte) // Put byte into queue, return 1 if q full.
 {

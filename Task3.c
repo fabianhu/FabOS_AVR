@@ -1,6 +1,5 @@
 #include "FabOS.h"
 
-#ifdef TESTSUITE
 uint16_t ret;
 
 void Task3() 
@@ -28,15 +27,10 @@ void Task3()
 
 		OS_mutexRelease(0);
 
-	#ifdef MBOXTEST
-		ret = OS_mBoxPend(1);
-
-		OS_mBoxPost(0, 1234);
-	#endif
 
 
 		OS_WaitTicks(30);
 	}
 
 }
-#endif
+

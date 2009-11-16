@@ -1,5 +1,4 @@
 #include "FabOS.h"
-#ifdef TESTSUITE
 
 uint16_t ret;
 
@@ -29,14 +28,6 @@ void Task1()
 		OS_mutexRelease(0);
 
 		
-	#ifdef MBOXTEST
-		OS_mBoxPost(1, 54321);
-		
-		ret = OS_mBoxPend(0);
-
-	#endif
-		
-		
 		ret = OS_QueueIn(&Qtest , z++); // Put byte into queue, return 1 if q full.
 
  
@@ -47,4 +38,3 @@ void Task1()
 
 }
 
-#endif

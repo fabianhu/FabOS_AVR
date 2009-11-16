@@ -1,5 +1,4 @@
 #include "FabOS.h"
-#ifdef TESTSUITE
 extern OS_Queue_t Qtest;
 
 void Task2() 
@@ -41,4 +40,4 @@ void Task2()
 
 }
 
-#endif
+

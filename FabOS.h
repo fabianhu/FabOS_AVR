@@ -15,12 +15,12 @@
 
 #define UNUSEDMASK 0xEE // unused Stack RAM will be filled with this byte.
 
-#define OS_USECLOCK 0
-#define OS_USECHECKS 0
-
 #define OS_ScheduleISR TIMER1_COMPA_vect // Interrupt Vector used for OS-tick generation (check out CustomOS_ISRCode if you want to add isr code)
 
-//#define TESTSUITE
+#define OS_USECLOCK 1
+#define OS_USECHECKS 1
+
+#define TESTSUITE
 
 #define BUFFER_SIZE 64 // must be 2^n (8, 16, 32, 64 ...)
 
@@ -57,8 +57,6 @@ extern FabOS_t MyOS;
 
 
 // OS function prototypes
-
-
 // user API
 void OS_CustomISRCode(); // do not call; just fill in your code.
 
@@ -94,6 +92,11 @@ uint16_t OS_get_unused_Stack (uint8_t* pStack);
 
 #if OS_USECLOCK == 1
 void OS_GetTicks(uint32_t* pTime); // fills given variable with the OS ticks since start.
+#endif
+
+#ifdef TESTSUITE
+void testsuite(void);
+#define result(X) testarr[testcase] = X
 #endif
 
 

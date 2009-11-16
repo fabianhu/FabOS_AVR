@@ -16,24 +16,26 @@ uint16_t r,s,t;
 
 int main(void)
 {
+	CPU_init();
+
 #ifdef TESTSUITE
+	testsuite();
+#endif
+
     OS_TaskCreate(0, Task1, Task1Stack);
     OS_TaskCreate(1, Task2, Task2Stack);
     OS_TaskCreate(2, Task3, Task3Stack);
-#endif
-	CPU_init();
 
 	OS_StartExecution() ;
 	while(1)
 	{
 		// THIS IS the idle task which will be preemted by all other tasks.
 		// NO OS-wait-API allowed here!!!
-#ifdef TESTSUITE 
+
 #if USECHECKS ==1
 		r = OS_get_unused_Stack (Task1Stack);
 		s = OS_get_unused_Stack (Task2Stack);
 		t = OS_get_unused_Stack (Task3Stack);
-#endif
 #endif
 	}
 

@@ -200,6 +200,11 @@ void OS_SetEvent(uint8_t EventMask, uint8_t TaskID) // Set one or more events
 	{
 		// wake up this task directly
 		MyOS.TaskReadyBits |= 1<<TaskID ;   // Make the task ready to run again.
+
+		MyOS.EventWaiting[TaskID] = 0; // no more waiting!
+		// clear the events:
+		MyOS.EventMask[TaskID] &= ~EventMask; // the actual events minus the ones, which have been waited for 
+
 		OS_Reschedule() ; // re-schedule; will wake up the sleeper directly, if higher prio.
 	}
 	else

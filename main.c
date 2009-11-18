@@ -32,7 +32,7 @@ int main(void)
 		// THIS IS the idle task which will be preemted by all other tasks.
 		// NO OS-wait-API allowed here!!!
 
-#if USECHECKS ==1
+#if OS_USECHECKS ==1
 		r = OS_get_unused_Stack (Task1Stack);
 		s = OS_get_unused_Stack (Task2Stack);
 		t = OS_get_unused_Stack (Task3Stack);
@@ -54,7 +54,7 @@ void CPU_init(void)
 	// init timer
 	TCCR1A = 0b00000000;
 	TCCR1B = 0b00000011; //250kHZ timer ck
-	OCR1A  = 2500; //interrupt every 10ms
+	OCR1A  = 250; //interrupt every 1ms
 	TIMSK |= 1<<OCIE1A; // Output Compare Interrupt ON
 
 	

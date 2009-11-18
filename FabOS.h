@@ -64,7 +64,7 @@ void OS_CustomISRCode(); // do not call; just fill in your code.
 
 void OS_TaskDestroy( int8_t taskNum ); // Takes the task out of the list of tasks ready to run.
 
-void OS_StartExecution()__attribute__ ((naked)); // Start the operating system
+void OS_StartExecution();// fixme oder halt nicht __attribute__ ((naked)); // Start the operating system
 
 void OS_SetEvent(uint8_t EventMask, uint8_t TaskID); // Set one or more events
 

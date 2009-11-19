@@ -100,12 +100,16 @@ int8_t OS_GetNextTaskNumber() // which is the next task (ready and highest (= ri
 	// now "next" is the next highest prio task.
 
 	// look in mutex waiting list, if any task is blocking "next", then "next" must not run.
-	if (MyOS.MutexTaskWaiting[next] != 0xff) // "next" is waiting for mutex
+	if (MyOS.MutexTaskWaiting[next] != 0xff && MyOS.MutexOwnedByTask[MyOS.MutexTaskWaiting[next]]!=0xff) // "next" is waiting for mutex
 	{
 		// which task is blocking it?
 		next = MyOS.MutexOwnedByTask[MyOS.MutexTaskWaiting[next]]; 
 		// the blocker gets the run.
 		// this is also a priority inversion.
+		if(((1<<next)&MyOS.TaskReadyBits) == 0)  // special case, where the blocker is not ready to run (waiting inside mutex)
+		{
+			next = NUMTASKS;
+		}
 	}
 	return next;
 }
@@ -185,9 +189,9 @@ void OS_mutexGet(int8_t mutexID)
 		MyOS.MutexTaskWaiting[MyOS.CurrTask] = mutexID; // set waiting info for priority inversion of scheduler
 		OS_Reschedule(); // also re-enables interrupts...
 		cli();
+		MyOS.MutexTaskWaiting[MyOS.CurrTask] = 0xff; // remove waiting info
 	}
 	MyOS.MutexOwnedByTask[mutexID] = MyOS.CurrTask; // tell others, that I am the owner.
-	MyOS.MutexTaskWaiting[MyOS.CurrTask] = 0xff; // remove waiting info
 	sei();
 }
 

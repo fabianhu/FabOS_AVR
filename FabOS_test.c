@@ -11,22 +11,29 @@ uint8_t TestTask1Stack[200] ;
 uint8_t TestTask2Stack[200] ;
 
 volatile uint16_t r,s,t;
+volatile uint8_t testvar=0;
 
-#define MAXTESTCASES 12
-uint8_t testcase = 1; // test case number
-uint8_t TestResults[MAXTESTCASES]; // result array
-uint8_t TestProcessed[MAXTESTCASES]; // result array
+#define MAXTESTCASES 10
+uint8_t testcase = 0; // test case number
+uint8_t TestResults[MAXTESTCASES]; // test result array (0= OK)
+uint8_t TestProcessed[MAXTESTCASES]; // test passed array (number of processed assertions
 
-#define assert(X) if(!X)TestResults[testcase]++;TestProcessed[testcase]++
+#define assert(X) do{								\
+						cli();						\
+						if(!X)						\
+						{							\
+							TestResults[testcase]++;\
+						}							\
+						TestProcessed[testcase]++;	\
+						sei();						\
+					}while(0)
 
 void WasteOfTime(uint32_t waittime);
 
 void testsuite(void)
 {
 
-//	for(r=0;r<MAXTESTCASES;r++)
-//	TestResults[r] = 0xff;
-
+	uint8_t test0pass=0;
 
 
     OS_TaskCreate(0, TestTask0, TestTask0Stack);
@@ -45,20 +52,40 @@ void testsuite(void)
 		t = OS_get_unused_Stack (TestTask2Stack);
 #endif
 
+		switch(testcase)
+			{
+				case 0:
+					// Task Priority
+					if(!test0pass)
+					{
+						assert(testvar ==3);
+						test0pass = 1;
+					}
+					break;
+				default:
+					break;
+			}
 	}
 
 }
 
-volatile uint8_t testvar=0;
+volatile uint32_t testtime=0;
 
 
 void TestTask1(void)
 {
 	uint8_t ret;
+	uint32_t ts,te;
+
 	while(1)
 	{
 		switch(testcase)
 		{
+			case 0:
+				// Task Priority
+				assert(testvar ==1);
+				testvar++;
+				break;
 			case 1:
 				OS_WaitTicks(1);
 				// Timer / Wait
@@ -73,6 +100,7 @@ void TestTask1(void)
 				break;
 			case 2:
 				// WaitEvent
+				// SetEvent
 				// wait for A, then A occurs
 				testvar=1;
 				OS_WaitEvent(1<<0);
@@ -92,64 +120,50 @@ void TestTask1(void)
 				testvar=7;
 				assert(ret == (1<<1));
 				testvar=8;
-				break;
-			case 3:
-				// SetEvent
+
+				// wait for less events
 
 				break;
-			case 4:
+			case 3:
 				// MutexGet
+				// MutexRelease			
 				// two cases: 
 				// 1:mutex is free
 				OS_mutexGet(0);
 				WasteOfTime(50);
 				testvar = 1;
-				WasteOfTime(50);
+				OS_WaitTicks(50);
 				assert(testvar == 1);
 				OS_mutexRelease(0);
 
-				// 2:mutex is occupied
+				OS_WaitEvent(1<<1);
+				// 2:mutex is occupied by lower prio
+				OS_WaitTicks(50);
+				OS_mutexGet(0);
+				testvar = 3;
+				WasteOfTime(50);
+				assert(testvar == 3);
+				OS_mutexRelease(0);
 
 				break;
-			case 5:
-				// MutexRelease			
-
-				break;
-			case 6:
-				// SetEvent
-
-				break;
-			case 7:
+			case 4:
 				// QueueIn
-
-				break;
-			case 8:
 				// QueueOut
 
 				break;
-			case 9:
+			case 5:
 				// SetAlarm
-
-				break;
-			case 10:
 				// WaitAlarm
-
+				OS_GetTicks(&ts);
+				OS_WaitAlarm();
+				OS_GetTicks(&te);
+				assert(te-ts == 53);
 				break;
-			case 11:
-				// GetUnusedStack
-
-				break;
-			case 12:
-				// The END
-				while(1)
-				{
-					// sit here and wait for someone picking up the results
-					asm("nop");
-				}
+			case 6:
+				// Event with timeout
 
 				break;
 			default:
-				OS_WaitTicks(2);
 				break;
 		}
 	OS_WaitEvent(1<<7);
@@ -159,10 +173,16 @@ void TestTask1(void)
 
 void TestTask2(void)
 {
+	uint32_t ts,te;
 	while(1)
 	{
 		switch(testcase)
 		{
+			case 0:
+				// Task Priority
+				assert(testvar ==2);
+				testvar++;
+				break;
 			case 1:
 				// Timer / Wait
 				OS_WaitTicks(2);
@@ -176,42 +196,47 @@ void TestTask2(void)
 				break;
 			case 2:
 				// WaitEvent
+				// SetEvent
 
 				break;
 			case 3:
-				// SetEvent
+				// MutexGet
+				// MutexRelease			
+				// two cases: 
+				// 1:mutex is occupied by higher prio
+				WasteOfTime(10);
+				OS_mutexGet(0);
+				testvar = 7;
+				WasteOfTime(50);
+				assert(testvar == 7);
+				OS_mutexRelease(0);
+				OS_SetEvent(1<<1,1);
+				// 2:mutex is occupied
+				OS_mutexGet(0);
+				testvar = 4;
+				WasteOfTime(50);
+				assert(testvar == 4);
+				OS_mutexRelease(0);
+
 
 				break;
 			case 4:
-				// MutexGet
-
-				break;
-			case 5:
-				// MutexRelease			
-
-				break;
-			case 6:
-				// SetEvent
-
-				break;
-			case 7:
 				// QueueIn
-
-				break;
-			case 8:
 				// QueueOut
 
 				break;
-			case 9:
+			case 5:
 				// SetAlarm
-
-				break;
-			case 10:
 				// WaitAlarm
+				OS_GetTicks(&ts);
+				OS_WaitAlarm();
+				OS_GetTicks(&te);
+				assert(te-ts == 44);
 
 				break;
-			case 11:
-				// GetUnusedStack
+			case 6:
+				// Event with timeout
+
 
 				break;
 			default:
@@ -228,6 +253,11 @@ void TestTask0(void)
 	{
 		switch(testcase)
 		{
+			case 0:
+				// Task Priority
+				assert(testvar ==0);
+				testvar++;
+				break;
 			case 1:
 				// Timer / Wait
 				OS_WaitTicks(3);
@@ -241,6 +271,7 @@ void TestTask0(void)
 				break;
 			case 2:
 				// WaitEvent
+				// SetEvent
 // wait for A, then A occurs
 				testvar =0;
 				OS_WaitTicks(10);
@@ -266,47 +297,37 @@ void TestTask0(void)
 
 				break;
 			case 3:
-				// SetEvent
-
-				break;
-			case 4:
 				// MutexGet
-
-				break;
-			case 5:
 				// MutexRelease			
 
 				break;
-			case 6:
-				// SetEvent
-
-				break;
-
-			case 7:
+			case 4:
 				// QueueIn
-
-				break;
-			case 8:
 				// QueueOut
 
 				break;
-			case 9:
+			case 5:
 				// SetAlarm
-
-				break;
-			case 10:
 				// WaitAlarm
-
+				OS_SetAlarm(1,53);
+				OS_SetAlarm(2,44);
 				break;
-			case 11:
-				// GetUnusedStack
+			case 6:
+				// Event with timeout
 
 				break;
 			default:
+				// The END
+				while(1)
+				{
+					// sit here and wait for someone picking up the results out of "TestResults". 0 = OK. 
+					///TestProcessed shows the number of processed assertions.
+					asm("break");
+				}
 				break;
 		}
 
-		OS_WaitTicks(300); // wait for tests to be processed...
+		OS_WaitTicks(500); // wait for tests to be processed...
 
 		testcase++;
 		OS_SetEvent(1<<7,1);

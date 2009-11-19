@@ -20,8 +20,12 @@ FabOS_t MyOS; // the global instance of the struct
 // tells the compiler not to add code to push the registers
 // it uses onto the stack or even add a RETI instruction
 // at the end. It just compiles the code inside the braces.
-ISR  (OS_ScheduleISR) //__attribute__ ((naked,signal)) // 10 ms isr
+// No use of stack space inside this function!
+// except embedding it into a function, as this creates a stack frame.
+//	register uint8_t taskID asm("r3"); // have to use a register (r2..7) here. we would otherwise damage the stack
+ISR  (OS_ScheduleISR) //__attribute__ ((naked,signal)) // Timer isr
 {
+
 	saveCPUContext() ; 
 	MyOS.Stacks[MyOS.CurrTask] = SP ; // catch the SP before we (possibly) do anything with it.
 
@@ -32,8 +36,21 @@ ISR  (OS_ScheduleISR) //__attribute__ ((naked,signal)) // 10 ms isr
 	
 	OS_CustomISRCode(); // Caller of Custom ISR code to be executed inside this ISR on the last tasks stack
 
-	uint8_t taskID;
+	ProcessAlarms(); // function uses stack
 
+	// task is to be run
+	MyOS.CurrTask = OS_GetNextTaskNumber() ;
+	SP = MyOS.Stacks[MyOS.CurrTask] ;
+	restoreCPUContext() ;
+	asm volatile("reti"); 
+}
+
+// ************************** OS_INTERNALS
+
+
+void ProcessAlarms(void)
+{
+	uint8_t taskID;
 	// handling of OS_Wait / Alarms
 	for(taskID=0; taskID < NUMTASKS; taskID++ ) 
 	{ 
@@ -45,15 +62,8 @@ ISR  (OS_ScheduleISR) //__attribute__ ((naked,signal)) // 10 ms isr
 			}
 		}
 	}
-
-	// task is to be run
-	MyOS.CurrTask = OS_GetNextTaskNumber() ;
-	SP = MyOS.Stacks[MyOS.CurrTask] ;
-	restoreCPUContext() ;
-	asm volatile("reti"); 
 }
 
-// ************************** OS_INTERNALS
 
 void OS_Reschedule(void) //with "__attribute__ ((naked))"
 {
@@ -194,9 +204,9 @@ void OS_mutexRelease(int8_t mutexID)
 void OS_SetEvent(uint8_t EventMask, uint8_t TaskID) // Set one or more events
 {
 	cli();
-	MyOS.EventMask[TaskID] |= EventMask;
+	MyOS.EventMask[TaskID] |= EventMask; // set the event mask, as there may be more events than waited for.
 
-	if(EventMask & MyOS.EventWaiting[TaskID]) // Targeted task is waiting for this event
+	if(EventMask & MyOS.EventWaiting[TaskID]) // Targeted task is waiting for one of this events
 	{
 		// wake up this task directly
 		MyOS.TaskReadyBits |= 1<<TaskID ;   // Make the task ready to run again.
@@ -218,16 +228,19 @@ uint8_t OS_WaitEvent(uint8_t EventMask) //returns event(s), which lead to execut
 {
 	uint8_t ret;
 	cli();
-	MyOS.EventWaiting[MyOS.CurrTask] |= EventMask;
 	
-	if(!(EventMask & MyOS.EventMask[MyOS.CurrTask])) // This task is Not waiting for this event
+	if(!(EventMask & MyOS.EventMask[MyOS.CurrTask])) // This task is Not having one of these events active
 	{
+		MyOS.EventWaiting[MyOS.CurrTask] = EventMask; // remember what this task is waiting for
 		// no event yet... waiting
 		MyOS.TaskReadyBits &= ~(1<<MyOS.CurrTask) ;     // indicate that this task is not ready to run.
+
 		OS_Reschedule() ; // re-schedule; will be waked up here by "SetEvent" or alarm
+
+		MyOS.EventWaiting[MyOS.CurrTask] = 0; // no more waiting!
+		cli();
 	}
 	ret = MyOS.EventMask[MyOS.CurrTask] & EventMask;
-	MyOS.EventWaiting[MyOS.CurrTask] = 0; // no more waiting!
 	// clear the events:
 	MyOS.EventMask[MyOS.CurrTask] &= ~EventMask; // the actual events minus the ones, which have been waited for 
 	sei();

@@ -54,6 +54,7 @@ volatile uint8_t testvar=0;
 
 void TestTask1(void)
 {
+	uint8_t ret;
 	while(1)
 	{
 		switch(testcase)
@@ -72,10 +73,25 @@ void TestTask1(void)
 				break;
 			case 2:
 				// WaitEvent
-				OS_WaitEvent(1<<2);
-				assert(testvar == 1);
-				testvar--;
+				// wait for A, then A occurs
+				testvar=1;
+				OS_WaitEvent(1<<0);
+				testvar=2;
+				// A occurs, then wait for A
+				WasteOfTime(50);
+				assert(testvar==3);
+				OS_WaitEvent(1<<0);
+				testvar=4;
 
+				// wait for more events, one occurs, then the other
+				ret = OS_WaitEvent(1<<1 | 1<<2);
+				testvar=5;
+				assert(ret == (1<<2));
+				testvar=6;
+				ret = OS_WaitEvent(1<<1 | 1<<2);
+				testvar=7;
+				assert(ret == (1<<1));
+				testvar=8;
 				break;
 			case 3:
 				// SetEvent
@@ -123,6 +139,15 @@ void TestTask1(void)
 				// GetUnusedStack
 
 				break;
+			case 12:
+				// The END
+				while(1)
+				{
+					// sit here and wait for someone picking up the results
+					asm("nop");
+				}
+
+				break;
 			default:
 				OS_WaitTicks(2);
 				break;
@@ -151,9 +176,6 @@ void TestTask2(void)
 				break;
 			case 2:
 				// WaitEvent
-				OS_WaitEvent(1<<2);
-				assert(testvar == 2);
-				testvar++;
 
 				break;
 			case 3:
@@ -219,15 +241,29 @@ void TestTask0(void)
 				break;
 			case 2:
 				// WaitEvent
-				testvar =2;
-				OS_SetEvent(1<<2,2);
-				OS_WaitTicks(10);
-				assert(testvar == 3);
-				testvar =1;
-				OS_SetEvent(1<<2,1);
-				OS_WaitTicks(10);
-				assert(testvar == 0);
+// wait for A, then A occurs
 				testvar =0;
+				OS_WaitTicks(10);
+				assert(testvar==1);
+				OS_SetEvent(1<<0,1);
+				OS_WaitTicks(2);
+				assert(testvar==2);
+// A occurs, then wait for A
+				testvar =3;
+				OS_SetEvent(1<<0,1);
+				assert(testvar==3);
+				OS_WaitTicks(100); // other task wastes time...
+				assert(testvar==4);
+// wait for more events, one occurs, then the other
+				OS_SetEvent(1<<2,1);
+				assert(testvar==4);
+				OS_WaitTicks(10);
+				assert(testvar==6);
+				OS_SetEvent(1<<1,1);
+				assert(testvar==6);
+				OS_WaitTicks(10);
+				assert(testvar==8);
+
 				break;
 			case 3:
 				// SetEvent

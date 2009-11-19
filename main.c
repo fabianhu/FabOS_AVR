@@ -6,13 +6,13 @@ void Task2(void);
 void Task3(void);
 void CPU_init(void);
 
-#ifdef TESTSUITE
+
 uint8_t Task1Stack[200] ;
 uint8_t Task2Stack[200] ;
 uint8_t Task3Stack[200] ;
 
 uint16_t r,s,t;
-#endif
+
 
 int main(void)
 {

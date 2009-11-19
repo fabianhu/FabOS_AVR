@@ -96,7 +96,6 @@ void OS_GetTicks(uint32_t* pTime); // fills given variable with the OS ticks sin
 
 #ifdef TESTSUITE
 void testsuite(void);
-#define result(X) testarr[testcase] = X
 #endif
 
 
@@ -105,7 +104,7 @@ ISR (OS_ScheduleISR)__attribute__ ((naked,signal)); // OS tick interrupt functio
 void OS_TaskCreateInt( uint8_t taskNum, void (*t)(), uint8_t *stack, uint8_t stackSize ) ; // Create the task internal
 void OS_Reschedule(void)__attribute__ ((naked)); // internal: Trigger re-scheduling
 int8_t OS_GetNextTaskNumber(); // internal: get the next task to be run// which is the next task (ready and highest (= rightmost); prio);?
-
+void ProcessAlarms(void);
 
 
 
@@ -188,11 +187,11 @@ asm volatile( \
 	pop r0");
 
 #if NUMMUTEX > NUMTASKS 
-	#warning something is wrong fritz..
+	#warning more mutexes than tasks? are you serious with that concept?
 #endif
 
 #if NUMTASKS >8 
-	#error only 8 tasks are allowed.
+	#error only 8 tasks are possible, if you want more, you have to change the datatypes
 #endif
 
 #if OS_USECHECKS == 0

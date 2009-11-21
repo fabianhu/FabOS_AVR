@@ -20,7 +20,7 @@
 #define OS_USECLOCK 1
 #define OS_USECHECKS 1
 
-#define TESTSUITE
+#define OS_DO_TESTSUITE 1
 
 #define BUFFER_SIZE 64 // must be 2^n (8, 16, 32, 64 ...)
 
@@ -64,7 +64,7 @@ void OS_CustomISRCode(); // do not call; just fill in your code.
 
 void OS_TaskDestroy( int8_t taskNum ); // Takes the task out of the list of tasks ready to run.
 
-void OS_StartExecution();// fixme oder halt nicht __attribute__ ((naked)); // Start the operating system
+void OS_StartExecution(); // Start the operating system
 
 void OS_SetEvent(uint8_t EventMask, uint8_t TaskID); // Set one or more events
 
@@ -94,8 +94,8 @@ uint16_t OS_get_unused_Stack (uint8_t* pStack);
 void OS_GetTicks(uint32_t* pTime); // fills given variable with the OS ticks since start.
 #endif
 
-#ifdef TESTSUITE
-void testsuite(void);
+#if OS_DO_TESTSUITE == 1
+void OS_testsuite(void);
 #endif
 
 

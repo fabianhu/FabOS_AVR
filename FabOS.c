@@ -3,16 +3,6 @@
 FabOS_t MyOS; // the global instance of the struct
 
 
-// the idle task does not have a stack-array defined. Instead it uses the unused "ordinary" stack at the end of RAM.
-
-
-// -mtiny-stack ??
-// 
-// register unsigned char counter asm("r3");  Typically, it should be safe to use r2 through r7 that way.
-
-// -Os -mcall-prologues
-
-
 // **************************** TIMER
 
 // ISR(TIMER0_OVF_vect) __attribute__ ((naked,signal));
@@ -20,9 +10,8 @@ FabOS_t MyOS; // the global instance of the struct
 // tells the compiler not to add code to push the registers
 // it uses onto the stack or even add a RETI instruction
 // at the end. It just compiles the code inside the braces.
-// No use of stack space inside this function!
-// except embedding it into a function, as this creates a stack frame.
-//	register uint8_t taskID asm("r3"); // have to use a register (r2..7) here. we would otherwise damage the stack
+// *** No direct use of stack space inside a neked function, except embedding it into a function, as this creates a valid stack frame.
+// or use "register unsigned char counter asm("r3")";  Typically, it should be safe to use r2 through r7 that way.
 ISR  (OS_ScheduleISR) //__attribute__ ((naked,signal)) // Timer isr
 {
 
@@ -159,7 +148,7 @@ void OS_TaskDestroy( int8_t taskNum )
 
 
 // Start the operating system
-void OS_StartExecution() // __attribute__ ((naked));
+void OS_StartExecution()
 {
 	
 	uint8_t i;
@@ -251,8 +240,6 @@ uint8_t OS_WaitEvent(uint8_t EventMask) //returns event(s), which lead to execut
 	return ret;
 }
 
-
-
 /*
 Mutex Prinzip:
 
@@ -286,13 +273,7 @@ alles klar?
 
 // ************************** ALARMS
 
-void OS_WaitTicks( uint16_t numTicks ) // Wait for a certain number of OS-ticks (1 = wait to the next timer interrupt)
-{
-	OS_SetAlarm(MyOS.CurrTask, numTicks);
-	OS_WaitAlarm();
-}
-
-void OS_SetAlarm(uint8_t TaskID, uint16_t numTicks ) // set Alarm for the future and continue // set alarm to 0 disable it.
+void OS_SetAlarm(uint8_t TaskID, uint16_t numTicks ) // set Alarm for the future and continue // set alarm to 0 disable an alarm.
 {
 	cli(); // critical section;
 	MyOS.AlarmTicks[TaskID] = numTicks ;
@@ -419,3 +400,28 @@ void OS_GetTicks(uint32_t* pTime)
 	sei();
 }
 #endif
+
+
+void OS_WaitTicks( uint16_t numTicks ) // Wait for a certain number of OS-ticks (1 = wait to the next timer interrupt)
+{
+	OS_SetAlarm(MyOS.CurrTask, numTicks);
+	OS_WaitAlarm();
+}
+
+uint8_t OS_WaitEventTimeout(uint8_t EventMask, uint16_t numTicks ) //returns 0 on event, 1 on timeout.
+{
+	uint8_t ret;
+	OS_SetAlarm(MyOS.CurrTask,numTicks); // set timeout
+	OS_WaitEvent(1<<5);
+	if(ret == 1<<5)
+	{
+		// event occured
+		OS_SetAlarm(1,0); // disable timeout
+		return 0;
+	}
+	else
+	{
+		// timeout occured
+		return 1;
+	}
+}

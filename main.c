@@ -18,8 +18,8 @@ int main(void)
 {
 	CPU_init();
 
-#ifdef TESTSUITE
-	testsuite();
+#if OS_DO_TESTSUITE == 1
+	OS_testsuite(); // call automated tests of OS.
 #endif
 
     OS_TaskCreate(0, Task1, Task1Stack);

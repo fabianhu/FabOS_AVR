@@ -1,6 +1,6 @@
 #include "FabOS.h"
 
-#ifdef TESTSUITE
+#ifdef OS_DO_TESTSUITE
 
 void TestTask0(void);
 void TestTask1(void);
@@ -12,8 +12,9 @@ uint8_t TestTask2Stack[200] ;
 
 volatile uint16_t r,s,t;
 volatile uint8_t testvar=0;
+OS_Queue_t TestQ ={0,0,{}};
 
-#define MAXTESTCASES 10
+#define MAXTESTCASES 7 // one more than the max ID.
 uint8_t testcase = 0; // test case number
 uint8_t TestResults[MAXTESTCASES]; // test result array (0= OK)
 uint8_t TestProcessed[MAXTESTCASES]; // test passed array (number of processed assertions
@@ -30,7 +31,7 @@ uint8_t TestProcessed[MAXTESTCASES]; // test passed array (number of processed a
 
 void WasteOfTime(uint32_t waittime);
 
-void testsuite(void)
+void OS_testsuite(void)
 {
 
 	uint8_t test0pass=0;
@@ -74,8 +75,9 @@ volatile uint32_t testtime=0;
 
 void TestTask1(void)
 {
-	uint8_t ret;
+	uint8_t ret,i;
 	uint32_t ts,te;
+	uint8_t v;
 
 	while(1)
 	{
@@ -90,12 +92,12 @@ void TestTask1(void)
 				OS_WaitTicks(1);
 				// Timer / Wait
 				uint16_t t=25;
-				uint32_t i,j;
+				uint32_t ti,tj;
 
-				OS_GetTicks(&i); // get time
+				OS_GetTicks(&ti); // get time
 				OS_WaitTicks(t);
-				OS_GetTicks(&j); // get time
-				assert(j-i == t); // waited time was correct
+				OS_GetTicks(&tj); // get time
+				assert(tj-ti == t); // waited time was correct
 									
 				break;
 			case 2:
@@ -150,6 +152,35 @@ void TestTask1(void)
 				// QueueIn
 				// QueueOut
 
+				TestQ.read = 13; // tweak the queue to a "used" state
+				TestQ.write =13;
+
+				ret = OS_QueueOut(&TestQ,&v); // q empty at start
+				assert(ret == 1);
+				OS_WaitEvent(1<<6);
+				for (i=0;i<20;i++) // forward
+				{
+					ret = OS_QueueOut(&TestQ,&v);
+					assert(v==i);
+					assert(ret ==0);
+				}
+				// Q empty
+				ret = OS_QueueOut(&TestQ,&v);
+				//assert(v==i);
+				assert(ret ==1);
+				OS_WaitEvent(1<<6);
+				for (i=20;i>0;i--) // backward
+				{
+					ret = OS_QueueOut(&TestQ,&v);
+					assert(v==i);
+					assert(ret ==0);
+				}
+				// Q empty
+				ret = OS_QueueOut(&TestQ,&v);
+				//assert(v==i);
+				assert(ret ==1);
+				OS_WaitEvent(1<<6);
+
 				break;
 			case 5:
 				// SetAlarm
@@ -161,7 +192,17 @@ void TestTask1(void)
 				break;
 			case 6:
 				// Event with timeout
-
+				OS_SetAlarm(1,30); // set timeout
+				OS_WaitEvent(1<<5);
+				if(ret == 1<<5)
+				{
+					// event occured
+					OS_SetAlarm(1,0); // disable timeout
+				}
+				else
+				{
+					// timeout occured
+				}
 				break;
 			default:
 				break;
@@ -174,6 +215,8 @@ void TestTask1(void)
 void TestTask2(void)
 {
 	uint32_t ts,te;
+	uint32_t i,j;
+	uint16_t t;
 	while(1)
 	{
 		switch(testcase)
@@ -186,9 +229,8 @@ void TestTask2(void)
 			case 1:
 				// Timer / Wait
 				OS_WaitTicks(2);
-				uint32_t i,j;
-				uint16_t t=50;
-
+				
+				t=50;
 				OS_GetTicks(&i); // get time
 				OS_WaitTicks(t);
 				OS_GetTicks(&j); // get time
@@ -249,6 +291,10 @@ void TestTask2(void)
 
 void TestTask0(void)
 {
+	uint8_t ret,i;
+	uint32_t ti,tj;
+	uint16_t t;
+
 	while(1)
 	{
 		switch(testcase)
@@ -261,13 +307,12 @@ void TestTask0(void)
 			case 1:
 				// Timer / Wait
 				OS_WaitTicks(3);
-				uint32_t i,j;
-				uint16_t t=10;
 
-				OS_GetTicks(&i); // get time
+				t=10;
+				OS_GetTicks(&ti); // get time
 				OS_WaitTicks(t);
-				OS_GetTicks(&j); // get time
-				assert(j-i == t); // waited time was correct
+				OS_GetTicks(&tj); // get time
+				assert(tj-ti == t); // waited time was correct
 				break;
 			case 2:
 				// WaitEvent
@@ -304,6 +349,29 @@ void TestTask0(void)
 			case 4:
 				// QueueIn
 				// QueueOut
+				OS_WaitTicks(50);
+				for (i=0;i<20;i++) // forward
+				{
+					ret = OS_QueueIn(&TestQ,i);
+					assert(ret==0);
+				}
+				OS_SetEvent(1<<6,1);
+				OS_WaitTicks(50);
+				for (i=20;i>0;i--) // backward
+				{
+					ret = OS_QueueIn(&TestQ,i);
+					assert(ret==0);
+				}
+				OS_SetEvent(1<<6,1);
+				OS_WaitTicks(50);
+				for (i=0;i<63;i++) // overload the Q (only 63 of 64 usable for indication full/empty)
+				{
+					ret = OS_QueueIn(&TestQ,i);
+					assert(ret==0);
+				}
+				// now one too much:
+				ret = OS_QueueIn(&TestQ,i);
+				assert(ret==1);
 
 				break;
 			case 5:
@@ -321,7 +389,7 @@ void TestTask0(void)
 				while(1)
 				{
 					// sit here and wait for someone picking up the results out of "TestResults". 0 = OK. 
-					///TestProcessed shows the number of processed assertions.
+					// "TestProcessed" shows the number of processed assertions.
 					asm("break");
 				}
 				break;
@@ -350,4 +418,5 @@ void WasteOfTime(uint32_t waittime)
 
 
 
-#endif // Testsuite
+#endif // OS_DO_TESTSUITE == 1
+

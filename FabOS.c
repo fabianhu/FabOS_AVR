@@ -2,8 +2,10 @@
 
 FabOS_t MyOS; // the global instance of the struct
 
+// From linker script
+extern unsigned char __heap_start;
 
-// **************************** TIMER
+// *********  Timer Interrupt
 
 // ISR(TIMER0_OVF_vect) __attribute__ ((naked,signal));
 // Prototype for the INT0 ISR is in FabOS.h. The naked attribute
@@ -15,7 +17,7 @@ FabOS_t MyOS; // the global instance of the struct
 ISR  (OS_ScheduleISR) //__attribute__ ((naked,signal)) // Timer isr
 {
 
-	saveCPUContext() ; 
+	OS_Int_saveCPUContext() ; 
 	MyOS.Stacks[MyOS.CurrTask] = SP ; // catch the SP before we (possibly) do anything with it.
 
 #if OS_USECLOCK == 1
@@ -25,19 +27,18 @@ ISR  (OS_ScheduleISR) //__attribute__ ((naked,signal)) // Timer isr
 	
 	OS_CustomISRCode(); // Caller of Custom ISR code to be executed inside this ISR on the last tasks stack
 
-	ProcessAlarms(); // function uses stack
+	OS_Int_ProcessAlarms(); // function uses stack
 
 	// task is to be run
 	MyOS.CurrTask = OS_GetNextTaskNumber() ;
 	SP = MyOS.Stacks[MyOS.CurrTask] ;
-	restoreCPUContext() ;
+	OS_Int_restoreCPUContext() ;
 	asm volatile("reti"); 
 }
 
-// ************************** OS_INTERNALS
+// *********  Internal scheduling and priority stuff
 
-
-void ProcessAlarms(void)
+void OS_Int_ProcessAlarms(void)
 {
 	uint8_t taskID;
 	// handling of OS_Wait / Alarms
@@ -53,26 +54,26 @@ void ProcessAlarms(void)
 	}
 }
 
-
 void OS_Reschedule(void) //with "__attribute__ ((naked))"
 {
 	cli();
-	saveCPUContext() ; 
+	OS_Int_saveCPUContext() ; 
 	MyOS.Stacks[MyOS.CurrTask] = SP ; // catch the SP before we (possibly) do anything with it.
 
 	// task is to be run
 	MyOS.CurrTask = OS_GetNextTaskNumber();
 
 	SP = MyOS.Stacks[MyOS.CurrTask] ;// set Stack pointer
-	restoreCPUContext() ;
+	OS_Int_restoreCPUContext() ;
 	asm volatile("reti"); 
 }
 
 int8_t OS_GetNextTaskNumber() // which is the next task (ready and highest (= rightmost) prio)?
 {
-	uint8_t Task,ReadyMask,next= NUMTASKS; // NO task is ready, which one to execute?? the idle task !!;
+	uint8_t Task;
+	uint8_t	next= NUMTASKS; // NO task is ready, which one to execute?? the idle task !!;
 
-	ReadyMask= MyOS.TaskReadyBits; // make working copy
+	uint8_t ReadyMask= MyOS.TaskReadyBits; // make working copy
 	
 	for (Task=0;Task<NUMTASKS;Task++)
 	{
@@ -83,7 +84,7 @@ int8_t OS_GetNextTaskNumber() // which is the next task (ready and highest (= ri
 		}
 		else
 		{
-			ReadyMask= (ReadyMask>>1); // shift to right; i and the shift is synchronous.
+			ReadyMask= (ReadyMask>>1); // shift to right; i and the shift count is synchronous.
 		}
 	}
 	// now "next" is the next highest prio task.
@@ -104,7 +105,7 @@ int8_t OS_GetNextTaskNumber() // which is the next task (ready and highest (= ri
 }
 
 // internal task create function
-void OS_TaskCreateInt( uint8_t taskNum, void (*t)(), uint8_t *stack, uint8_t stackSize ) 
+void OS_TaskCreateInt( uint8_t TaskID, void (*t)(), uint8_t *stack, uint8_t stackSize ) 
 {
 	uint16_t z ;
 #if OS_USECHECKS == 1
@@ -113,6 +114,8 @@ void OS_TaskCreateInt( uint8_t taskNum, void (*t)(), uint8_t *stack, uint8_t sta
 	{
 		stack[z] = UNUSEDMASK;
 	}
+
+	MyOS.StackStart[TaskID]=stack;
 #endif
 
 	for (z=stackSize-35;z<stackSize;z++) // clear the stack frame space (should already be, but you never know...)
@@ -120,14 +123,14 @@ void OS_TaskCreateInt( uint8_t taskNum, void (*t)(), uint8_t *stack, uint8_t sta
 		stack[z] = 0;
 	}
 		
-	MyOS.TaskReadyBits |= 1<<taskNum ;  // indicate that the task exists and is ready to run.
+	MyOS.TaskReadyBits |= 1<<TaskID ;  // indicate that the task exists and is ready to run.
 
-	MyOS.Stacks[taskNum] = (uint16_t)stack + stackSize - 1 ; // Point the task's SP to the top address of the array that represents its stack.
+	MyOS.Stacks[TaskID] = (uint16_t)stack + stackSize - 1 ; // Point the task's SP to the top address of the array that represents its stack.
 
-	*(uint8_t*)(MyOS.Stacks[taskNum]-1) = ((uint16_t)(t)) >> 8; // Put the address of the function that implements the task on its stack
-	*(uint8_t*)(MyOS.Stacks[taskNum]) = ((uint16_t)(t)) & 0x00ff;
+	*(uint8_t*)(MyOS.Stacks[TaskID]-1) = ((uint16_t)(t)) >> 8; // Put the address of the function that implements the task on its stack
+	*(uint8_t*)(MyOS.Stacks[TaskID]) = ((uint16_t)(t)) & 0x00ff;
 
-	MyOS.Stacks[taskNum] -= 35;   // Create a stack frame with placeholders for all the user registers as well as the SR.
+	MyOS.Stacks[TaskID] -= 35;   // Create a stack frame with placeholders for all the user registers as well as the SR.
 }
 
 
@@ -136,7 +139,7 @@ void OS_TaskCreateInt( uint8_t taskNum, void (*t)(), uint8_t *stack, uint8_t sta
 // If the task is waiting on a mailbox or for a number of clock ticks
 // to pass, it is taken out of the mailbox wait list and the number of
 // clock ticks it has to wait for to be rescheduled is set to zero.
-void OS_TaskDestroy( int8_t taskNum ) 
+/*void OS_TaskDestroy( int8_t taskNum ) 
 {
 	MyOS.TaskReadyBits &= ~(1<<taskNum) ;
 
@@ -144,7 +147,10 @@ void OS_TaskDestroy( int8_t taskNum )
 	MyOS.EventWaiting[taskNum]=0;
 
 	MyOS.AlarmTicks[taskNum] = 0 ;
-}
+}*/
+
+
+
 
 
 // Start the operating system
@@ -160,6 +166,18 @@ void OS_StartExecution()
 	{ 
 		MyOS.MutexOwnedByTask[i] = 0xff;
 	}
+
+#if OS_USECHECKS == 1
+	
+	uint8_t* stack = (uint8_t*)SP;
+	MyOS.StackStart[NUMTASKS] = &__heap_start;
+	// "colorize" the stacks
+	while (stack > MyOS.StackStart[NUMTASKS])
+	{
+		*--stack = UNUSEDMASK;
+	}
+
+#endif
 
 	//store THIS context for idling!!
 	MyOS.CurrTask = NUMTASKS;
@@ -300,14 +318,14 @@ uint8_t OS_QueueIn(OS_Queue_t* pQueue , uint8_t byte) // Put byte into queue, re
 {
 	uint8_t next;
 	cli(); // critical section;
-	next = ((pQueue->write + 1) & BUFFER_MASK);
+	next = ((pQueue->write + 1) & QUEUE_MASK);
 	if (pQueue->read == next)
 	{
 		sei();
-		return 1; // buffer full
+		return 1; // queue full
 	}
 	pQueue->data[pQueue->write] = byte;
-	// buffer.data[buffer.write & BUFFER_MASK] = byte; // absolute secure
+	// pQueue->data[pQueue->write & QUEUE_MASK] = byte; // absolute secure
 	pQueue->write = next;
 	sei();
 	return 0;
@@ -319,10 +337,10 @@ uint8_t OS_QueueOut(OS_Queue_t* pQueue, uint8_t *pByte) // Get a byte out of the
 	if (pQueue->read == pQueue->write)
 	{
 		sei();
-		return 1; // buffer empty
+		return 1; // queue empty
 	}
 	*pByte = pQueue->data[pQueue->read];
-	pQueue->read = (pQueue->read+1) & BUFFER_MASK;
+	pQueue->read = (pQueue->read+1) & QUEUE_MASK;
 	sei();
 	return 0;
 }
@@ -330,38 +348,38 @@ uint8_t OS_QueueOut(OS_Queue_t* pQueue, uint8_t *pByte) // Get a byte out of the
 
 /* alternatively
 
-#define BUFFER_SIZE 23
+#define QUEUE_SIZE 23
  
-struct Buffer {
-  uint8_t data[BUFFER_SIZE];
+struct Queue {
+  uint8_t data[QUEUE_SIZE];
   uint8_t read; // zeigt auf das Feld mit dem ältesten Inhalt
   uint8_t write; // zeigt immer auf leeres Feld
-} buffer = {{}, 0, 0};
+} Queue = {{}, 0, 0};
  
-uint8_t BufferIn(uint8_t byte)
+uint8_t QueueIn(uint8_t byte)
 {
-  //if (write >= BUFFER_SIZE)
+  //if (write >= QUEUE_SIZE)
   //  write = 0; // erhöht sicherheit
  
-  if (buffer.write + 1 == buffer.read || buffer.read == 0 && buffer.write + 1 == BUFFER_SIZE)
+  if (Queue.write + 1 == Queue.read || Queue.read == 0 && Queue.write + 1 == Queue_SIZE)
     return FAIL; // voll
  
-  buffer.data[buffer.write] = byte;
+  Queue.data[Queue.write] = byte;
  
-  buffer.write = buffer.write + 1;
-  if (buffer.write >= BUFFER_SIZE)
-    buffer.write = 0;
+  Queue.write = Queue.write + 1;
+  if (Queue.write >= QUEUE_SIZE)
+    Queue.write = 0;
 }
  
-uint8_t BufferOut(uint8_t *pByte)
+uint8_t QueueOut(uint8_t *pByte)
 {
-  if (buffer.read == buffer.write)
+  if (Queue.read == Queue.write)
     return FAIL;
-  *pByte = buffer.data[buffer.read];
+  *pByte = Queue.data[Queue.read];
  
-  buffer.read = buffer.read + 1;
-  if (buffer.read >= BUFFER_SIZE)
-    buffer.read = 0;
+  Queue.read = Queue.read + 1;
+  if (Queue.read >= QUEUE_SIZE)
+    Queue.read = 0;
   return SUCCESS;
 }
 
@@ -374,10 +392,10 @@ uint8_t BufferOut(uint8_t *pByte)
 
 #if OS_USECHECKS == 1
 // give the free stack space for any task in function result.
-uint16_t OS_get_unused_Stack (uint8_t* pStack)
+uint16_t OS_get_unused_Stack (uint8_t TaskID)
 {
    uint16_t unused = 0;
-   uint8_t *p = pStack;
+   uint8_t *p = MyOS.StackStart[TaskID]; 
 
    do
    {
@@ -385,7 +403,7 @@ uint16_t OS_get_unused_Stack (uint8_t* pStack)
          break;
 
       unused++;
-   } while (p <= (uint8_t*) RAMEND);
+   } while (p <= (uint8_t*) MyOS.Stacks[TaskID]);
 
       return unused;
 }
@@ -402,26 +420,29 @@ void OS_GetTicks(uint32_t* pTime)
 #endif
 
 
+#if OS_USECOMBINED
+
 void OS_WaitTicks( uint16_t numTicks ) // Wait for a certain number of OS-ticks (1 = wait to the next timer interrupt)
 {
 	OS_SetAlarm(MyOS.CurrTask, numTicks);
 	OS_WaitAlarm();
 }
 
-uint8_t OS_WaitEventTimeout(uint8_t EventMask, uint16_t numTicks ) //returns 0 on event, 1 on timeout.
+uint8_t OS_WaitEventTimeout(uint8_t EventMask, uint16_t numTicks ) //returns event on event, 0 on timeout.
 {
 	uint8_t ret;
 	OS_SetAlarm(MyOS.CurrTask,numTicks); // set timeout
-	OS_WaitEvent(1<<5);
-	if(ret == 1<<5)
+	ret = OS_WaitEvent(EventMask);
+	if(ret | EventMask)
 	{
 		// event occured
 		OS_SetAlarm(1,0); // disable timeout
-		return 0;
+		return ret;
 	}
 	else
 	{
 		// timeout occured
-		return 1;
+		return 0;
 	}
 }
+#endif

@@ -1,12 +1,10 @@
 /*
 	FabOS for ATMEL AVR
-
+	tested on WinAVR and Mega32
 */
-
 
 #include <avr/io.h>
 #include <avr/interrupt.h>
-
 
 // *********  USER Configurable Block BEGIN
 
@@ -17,12 +15,14 @@
 
 #define OS_ScheduleISR TIMER1_COMPA_vect // Interrupt Vector used for OS-tick generation (check out CustomOS_ISRCode if you want to add isr code)
 
-#define OS_USECLOCK 1
-#define OS_USECHECKS 1
+#define OS_USECLOCK 1 		// Use "OS_GetTicks()" which returns a 32bit timer tick
+#define OS_USECHECKS 1 		// Use "OS_get_unused_Stack()" which returns free stack space for each task
+#define OS_USECOMBINED 1 	// Use "OS_WaitTicks()" and "OS_WaitEventTimeout()" which are easier to use, than combining alarms and events to get the functionality.
 
 #define OS_DO_TESTSUITE 1
 
-#define BUFFER_SIZE 64 // must be 2^n (8, 16, 32, 64 ...)
+#define QUEUE_SIZE 64 // must be 2^n (8, 16, 32, 64 ...)
+
 
 // *********  USER Configurable Block END 
 
@@ -41,28 +41,28 @@ typedef struct FabOS_tag
 	uint8_t 	TaskReadyBits ; 		// here te task activation BITS are set. Task 0 (LSB) has the highest priority.
 	uint16_t 	Stacks[NUMTASKS+1];		// actual SP position addresses for the tasks AND the IDLE-task, which uses the ordinary stack! Index = Task ID
 	uint16_t 	AlarmTicks[NUMTASKS];  	// Holds the number of system clock ticks to wait before the task becomes ready to run. Index = Task ID
-
+#if OS_USECHECKS == 1
+	uint8_t*     StackStart[NUMTASKS+1];
+#endif
 } FabOS_t;
 
-#define BUFFER_MASK (BUFFER_SIZE-1) // don't forget the braces
+#define QUEUE_MASK (QUEUE_SIZE-1) // don't forget the braces
  
 typedef struct OS_Queue_tag {
   uint8_t read; // field with oldest content
   uint8_t write; // always empty field
-  uint8_t data[BUFFER_SIZE];
+  uint8_t data[QUEUE_SIZE];
 } OS_Queue_t; 
 
 
 extern FabOS_t MyOS;
 
 
-// OS function prototypes
-// user API
+// *********  OS function prototypes
+
 void OS_CustomISRCode(); // do not call; just fill in your code.
 
 #define OS_TaskCreate( X, Y, Z )  OS_TaskCreateInt(X,Y, Z , sizeof(Z))// Macro to simplify the API
-
-void OS_TaskDestroy( int8_t taskNum ); // Takes the task out of the list of tasks ready to run.
 
 void OS_StartExecution(); // Start the operating system
 
@@ -75,8 +75,6 @@ void OS_mutexGet(int8_t mutexID); // number of mutexes limited to NUMMUTEX !!!
 
 void OS_mutexRelease(int8_t mutexID); // release the occupied mutex
 
-void OS_WaitTicks( uint16_t numTicks ); // Wait for a certain number of OS-ticks(1 = wait to the next timer interrupt);
-
 void OS_SetAlarm(uint8_t TaskID, uint16_t numTicks ); // set Alarm for the future and continue // set alarm to 0 disable it.
 
 void OS_WaitAlarm(void); // Wait for an Alarm set by OS_SetAlarm 
@@ -86,8 +84,7 @@ uint8_t OS_QueueIn(OS_Queue_t* pQueue , uint8_t byte); // Put byte into queue, r
 uint8_t OS_QueueOut(OS_Queue_t* pQueue, uint8_t *pByte); // Get a byte out of the queue, return 1 if q empty.
 
 #if OS_USECHECKS == 1
-// give the free stack space for any task in function result.
-uint16_t OS_get_unused_Stack (uint8_t* pStack);
+uint16_t OS_get_unused_Stack (uint8_t TaskID); // give the free stack space for any task as result.
 #endif
 
 #if OS_USECLOCK == 1
@@ -95,22 +92,28 @@ void OS_GetTicks(uint32_t* pTime); // fills given variable with the OS ticks sin
 #endif
 
 #if OS_DO_TESTSUITE == 1
-void OS_testsuite(void);
+void OS_testsuite(void); // execute test of FabOS (use only, if changed some internals)
+#endif
+
+#if OS_USECOMBINED == 1
+void OS_WaitTicks( uint16_t numTicks ); // Wait for a certain number of OS-ticks(1 = wait to the next timer interrupt);
+uint8_t OS_WaitEventTimeout(uint8_t EventMask, uint16_t numTicks ); //returns 0 on event, 1 on timeout.
 #endif
 
 
-// internal OS functions, not to be called by the user.
+// *********  internal OS functions, not to be called by the user.
 ISR (OS_ScheduleISR)__attribute__ ((naked,signal)); // OS tick interrupt function (vector #defined above)
 void OS_TaskCreateInt( uint8_t taskNum, void (*t)(), uint8_t *stack, uint8_t stackSize ) ; // Create the task internal
 void OS_Reschedule(void)__attribute__ ((naked)); // internal: Trigger re-scheduling
 int8_t OS_GetNextTaskNumber(); // internal: get the next task to be run// which is the next task (ready and highest (= rightmost); prio);?
-void ProcessAlarms(void);
+void OS_Int_ProcessAlarms(void);
 
 
+// *********  CPU related assembler stuff
 
 // Save all CPU registers on the AVR chip.
 // The last two lines save the Status Reg.
-#define saveCPUContext() \
+#define OS_Int_saveCPUContext() \
 asm volatile( \
 "	push r0\n\t\
 	push r1\n\t\
@@ -149,7 +152,7 @@ asm volatile( \
 
 // Restore all AVR CPU Registers. The first two lines
 // restore the stack pointer.
-#define restoreCPUContext() \
+#define OS_Int_restoreCPUContext() \
 asm volatile( \
 "	pop r0\n\t\
 	out 0x3f,r0\n\t\
@@ -186,12 +189,25 @@ asm volatile( \
 	pop r1\n\t\
 	pop r0");
 
+
+// *********  some final warning calculations
+
 #if NUMMUTEX > NUMTASKS 
 	#warning more mutexes than tasks? are you serious with that concept?
 #endif
 
 #if NUMTASKS >8 
 	#error only 8 tasks are possible, if you want more, you have to change the datatypes
+#endif
+
+#if (OS_DO_TESTSUITE == 1) && (\
+		(NUMTASKS !=3) ||\
+		(NUMMUTEX !=3) ||\
+		(OS_USECLOCK !=1) ||\
+		(OS_USECHECKS !=1) ||\
+		(OS_USECOMBINED !=1) \
+		) 
+		#error please configure for the testsuite as stated here!
 #endif
 
 #if OS_USECHECKS == 0

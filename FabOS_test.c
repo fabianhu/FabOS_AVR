@@ -10,7 +10,7 @@ uint8_t TestTask0Stack[200] ;
 uint8_t TestTask1Stack[200] ;
 uint8_t TestTask2Stack[200] ;
 
-volatile uint16_t r,s,t;
+volatile uint16_t r,s,t,u;
 volatile uint8_t testvar=0;
 OS_Queue_t TestQ ={0,0,{}};
 
@@ -48,9 +48,10 @@ void OS_testsuite(void)
 		// NO OS-wait-API allowed here!!!
 
 #if OS_USECHECKS ==1
-		r = OS_get_unused_Stack (TestTask0Stack);
-		s = OS_get_unused_Stack (TestTask1Stack);
-		t = OS_get_unused_Stack (TestTask2Stack);
+		r = OS_get_unused_Stack(0);
+		s = OS_get_unused_Stack(1);
+		t = OS_get_unused_Stack(2);
+		u = OS_get_unused_Stack(3); // idle
 #endif
 
 		switch(testcase)
@@ -78,6 +79,8 @@ void TestTask1(void)
 	uint8_t ret,i;
 	uint32_t ts,te;
 	uint8_t v;
+	uint16_t t=25;
+	uint32_t ti,tj;
 
 	while(1)
 	{
@@ -91,9 +94,6 @@ void TestTask1(void)
 			case 1:
 				OS_WaitTicks(1);
 				// Timer / Wait
-				uint16_t t=25;
-				uint32_t ti,tj;
-
 				OS_GetTicks(&ti); // get time
 				OS_WaitTicks(t);
 				OS_GetTicks(&tj); // get time
@@ -192,17 +192,17 @@ void TestTask1(void)
 				break;
 			case 6:
 				// Event with timeout
-				OS_SetAlarm(1,30); // set timeout
-				OS_WaitEvent(1<<5);
-				if(ret == 1<<5)
-				{
-					// event occured
-					OS_SetAlarm(1,0); // disable timeout
-				}
-				else
-				{
-					// timeout occured
-				}
+				ret = OS_WaitEventTimeout(1<<3,30);
+				assert(ret == 1<<3); // no timeout, it was the event.
+
+
+				OS_GetTicks(&ti); // get time
+				ret = OS_WaitEventTimeout(1<<3,t); // wait for the event, which never comes...
+				assert(ret == 0); // timeout recoginzed
+				OS_GetTicks(&tj); // get time
+				assert(tj-ti == t); // waited time was correct
+
+
 				break;
 			default:
 				break;
@@ -382,7 +382,10 @@ void TestTask0(void)
 				break;
 			case 6:
 				// Event with timeout
-
+				OS_SetEvent(1<<3,1);
+				OS_WaitTicks(50);
+				// do not set the second one...
+				
 				break;
 			default:
 				// The END

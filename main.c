@@ -11,7 +11,7 @@ uint8_t Task1Stack[200] ;
 uint8_t Task2Stack[200] ;
 uint8_t Task3Stack[200] ;
 
-uint16_t r,s,t;
+uint16_t r,s,t,u;
 
 
 int main(void)
@@ -33,9 +33,11 @@ int main(void)
 		// NO OS-wait-API allowed here!!!
 
 #if OS_USECHECKS ==1
-		r = OS_get_unused_Stack (Task1Stack);
-		s = OS_get_unused_Stack (Task2Stack);
-		t = OS_get_unused_Stack (Task3Stack);
+		r = OS_get_unused_Stack(0);
+		s = OS_get_unused_Stack(1);
+		t = OS_get_unused_Stack(2);
+		t = OS_get_unused_Stack(3); // idle task
+
 #endif
 	}
 

@@ -1,6 +1,6 @@
 #include "FabOS.h"
 
-#ifdef OS_DO_TESTSUITE
+#if OS_DO_TESTSUITE == 1
 
 void TestTask0(void);
 void TestTask1(void);
@@ -20,18 +20,18 @@ uint8_t TestResults[MAXTESTCASES]; // test result array (0= OK)
 uint8_t TestProcessed[MAXTESTCASES]; // test passed array (number of processed assertions
 
 #define assert(X) do{								\
-						cli();						\
+						OS_ENTERCRITICAL;			\
 						if(!X)						\
 						{							\
 							TestResults[testcase]++;\
 						}							\
 						TestProcessed[testcase]++;	\
-						sei();						\
+						OS_LEAVECRITICAL;			\
 					}while(0)
 
 void WasteOfTime(uint32_t waittime);
 
-void OS_testsuite(void)
+void OS_TestSuite(void)
 {
 
 	uint8_t test0pass=0;
@@ -47,11 +47,11 @@ void OS_testsuite(void)
 		// THIS IS the idle task which will be preemted by all other tasks.
 		// NO OS-wait-API allowed here!!!
 
-#if OS_USECHECKS ==1
-		r = OS_get_unused_Stack(0);
-		s = OS_get_unused_Stack(1);
-		t = OS_get_unused_Stack(2);
-		u = OS_get_unused_Stack(3); // idle
+#if OS_USEMEMCHECKS ==1
+		r = OS_GetUnusedStack(0);
+		s = OS_GetUnusedStack(1);
+		t = OS_GetUnusedStack(2);
+		u = OS_GetUnusedStack(3); // idle
 #endif
 
 		switch(testcase)
@@ -131,21 +131,21 @@ void TestTask1(void)
 				// MutexRelease			
 				// two cases: 
 				// 1:mutex is free
-				OS_mutexGet(0);
+				OS_MutexGet(0);
 				WasteOfTime(50);
 				testvar = 1;
 				OS_WaitTicks(50);
 				assert(testvar == 1);
-				OS_mutexRelease(0);
+				OS_MutexRelease(0);
 
 				OS_WaitEvent(1<<1);
 				// 2:mutex is occupied by lower prio
 				OS_WaitTicks(50);
-				OS_mutexGet(0);
+				OS_MutexGet(0);
 				testvar = 3;
 				WasteOfTime(50);
 				assert(testvar == 3);
-				OS_mutexRelease(0);
+				OS_MutexRelease(0);
 
 				break;
 			case 4:
@@ -247,18 +247,18 @@ void TestTask2(void)
 				// two cases: 
 				// 1:mutex is occupied by higher prio
 				WasteOfTime(10);
-				OS_mutexGet(0);
+				OS_MutexGet(0);
 				testvar = 7;
 				WasteOfTime(50);
 				assert(testvar == 7);
-				OS_mutexRelease(0);
+				OS_MutexRelease(0);
 				OS_SetEvent(1<<1,1);
 				// 2:mutex is occupied
-				OS_mutexGet(0);
+				OS_MutexGet(0);
 				testvar = 4;
 				WasteOfTime(50);
 				assert(testvar == 4);
-				OS_mutexRelease(0);
+				OS_MutexRelease(0);
 
 
 				break;

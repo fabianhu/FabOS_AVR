@@ -8,20 +8,22 @@
 
 // *********  USER Configurable Block BEGIN
 
-#define NUMTASKS 3 // Number of (Create)Tasks ; never >8 (idle task is not counted here!)
-#define NUMMUTEX 3 // Number of Mutexes
+#define OS_NUMTASKS 3 // Number of (Create)Tasks ; never >8 (idle task is not counted here!)
+#define OS_NUMMUTEX 3 // Number of Mutexes
 
-#define UNUSEDMASK 0xEE // unused Stack RAM will be filled with this byte.
+#define OS_UNUSEDMASK 0xEE // unused Stack RAM will be filled with this byte.
 
 #define OS_ScheduleISR TIMER1_COMPA_vect // Interrupt Vector used for OS-tick generation (check out CustomOS_ISRCode if you want to add isr code)
 
 #define OS_USECLOCK 1 		// Use "OS_GetTicks()" which returns a 32bit timer tick
-#define OS_USECHECKS 1 		// Use "OS_get_unused_Stack()" which returns free stack space for each task
+#define OS_USEMEMCHECKS 1 		// Use "OS_get_unused_Stack()" which returns free stack space for each task
 #define OS_USECOMBINED 1 	// Use "OS_WaitTicks()" and "OS_WaitEventTimeout()" which are easier to use, than combining alarms and events to get the functionality.
+
+#define OS_USEEXTCHECKS 0	// prevent false use of API -> does not work, but no damage.
 
 #define OS_DO_TESTSUITE 1
 
-#define QUEUE_SIZE 64 // must be 2^n (8, 16, 32, 64 ...)
+#define OS_QUEUE_SIZE 64 // must be 2^n (8, 16, 32, 64 ...)
 
 
 // *********  USER Configurable Block END 
@@ -31,27 +33,27 @@ typedef struct FabOS_tag
 #if OS_USECLOCK == 1
 	uint32_t    OSTicks;				// the OS time, to prevent clutteded results, alway use the Function GetTime() to read it.	
 #endif
-	uint8_t		EventMask[NUMTASKS] ;	// The event masks for all the tasks; Index = Task ID
-	uint8_t		EventWaiting[NUMTASKS]; // The mask indicates the events, the tasks are waiting for. Index = Task ID
+	uint8_t		EventMask[OS_NUMTASKS] ;	// The event masks for all the tasks; Index = Task ID // no event for idle task.
+	uint8_t		EventWaiting[OS_NUMTASKS]; // The mask indicates the events, the tasks are waiting for. Index = Task ID
 
-	uint8_t 	MutexOwnedByTask[NUMMUTEX] ;	// Mutex-owner (contains task ID of owner)
-	uint8_t 	MutexTaskWaiting[NUMTASKS+1] ;	// Mutex-waiters (contains mutex ID) ; Index = Task ID ; The last one is the idle task.
+	uint8_t 	MutexOwnedByTask[OS_NUMMUTEX] ;	// Mutex-owner (contains task ID of owner)
+	uint8_t 	MutexTaskWaiting[OS_NUMTASKS+1] ;	// Mutex-waiters (contains mutex ID) ; Index = Task ID ; The last one is the idle task.
 
 	uint8_t 	CurrTask; 				// here the NUMBER of the actual active task is set.
 	uint8_t 	TaskReadyBits ; 		// here te task activation BITS are set. Task 0 (LSB) has the highest priority.
-	uint16_t 	Stacks[NUMTASKS+1];		// actual SP position addresses for the tasks AND the IDLE-task, which uses the ordinary stack! Index = Task ID
-	uint16_t 	AlarmTicks[NUMTASKS];  	// Holds the number of system clock ticks to wait before the task becomes ready to run. Index = Task ID
-#if OS_USECHECKS == 1
-	uint8_t*     StackStart[NUMTASKS+1];
+	uint16_t 	Stacks[OS_NUMTASKS+1];		// actual SP position addresses for the tasks AND the IDLE-task, which uses the ordinary stack! Index = Task ID
+	uint16_t 	AlarmTicks[OS_NUMTASKS];  	// Holds the number of system clock ticks to wait before the task becomes ready to run. Index = Task ID
+#if OS_USEMEMCHECKS == 1
+	uint8_t*     StackStart[OS_NUMTASKS+1];
 #endif
 } FabOS_t;
 
-#define QUEUE_MASK (QUEUE_SIZE-1) // don't forget the braces
+#define OS_QUEUE_MASK (OS_QUEUE_SIZE-1) // don't forget the braces
  
 typedef struct OS_Queue_tag {
   uint8_t read; // field with oldest content
   uint8_t write; // always empty field
-  uint8_t data[QUEUE_SIZE];
+  uint8_t data[OS_QUEUE_SIZE];
 } OS_Queue_t; 
 
 
@@ -60,43 +62,43 @@ extern FabOS_t MyOS;
 
 // *********  OS function prototypes
 
-void OS_CustomISRCode(); // do not call; just fill in your code.
+void 	OS_CustomISRCode(); // do not call; just fill in your code.
 
 #define OS_TaskCreate( X, Y, Z )  OS_TaskCreateInt(X,Y, Z , sizeof(Z))// Macro to simplify the API
 
-void OS_StartExecution(); // Start the operating system
+void 	OS_StartExecution(); // Start the operating system
 
-void OS_SetEvent(uint8_t EventMask, uint8_t TaskID); // Set one or more events
+void 	OS_SetEvent(uint8_t EventMask, uint8_t TaskID); // Set one or more events
 
 uint8_t OS_WaitEvent(uint8_t EventMask); //returns event(s) in a mask, which lead to execution
 
-void OS_mutexGet(int8_t mutexID); // number of mutexes limited to NUMMUTEX !!!
+void 	OS_MutexGet(int8_t mutexID); // number of mutexes limited to NUMMUTEX !!!
 				// Try to get a mutex; execution will block as long the mutex is occupied. If it is free, it is occupied afterwards.
 
-void OS_mutexRelease(int8_t mutexID); // release the occupied mutex
+void 	OS_MutexRelease(int8_t mutexID); // release the occupied mutex
 
-void OS_SetAlarm(uint8_t TaskID, uint16_t numTicks ); // set Alarm for the future and continue // set alarm to 0 disable it.
+void 	OS_SetAlarm(uint8_t TaskID, uint16_t numTicks ); // set Alarm for the future and continue // set alarm to 0 disable it.
 
-void OS_WaitAlarm(void); // Wait for an Alarm set by OS_SetAlarm 
+void 	OS_WaitAlarm(void); // Wait for an Alarm set by OS_SetAlarm 
 
 uint8_t OS_QueueIn(OS_Queue_t* pQueue , uint8_t byte); // Put byte into queue, return 1 if q full.
 
 uint8_t OS_QueueOut(OS_Queue_t* pQueue, uint8_t *pByte); // Get a byte out of the queue, return 1 if q empty.
 
-#if OS_USECHECKS == 1
-uint16_t OS_get_unused_Stack (uint8_t TaskID); // give the free stack space for any task as result.
+#if OS_USEMEMCHECKS == 1
+uint16_t OS_GetUnusedStack (uint8_t TaskID); // give the free stack space for any task as result.
 #endif
 
 #if OS_USECLOCK == 1
-void OS_GetTicks(uint32_t* pTime); // fills given variable with the OS ticks since start.
+void 	OS_GetTicks(uint32_t* pTime); // fills given variable with the OS ticks since start.
 #endif
 
 #if OS_DO_TESTSUITE == 1
-void OS_testsuite(void); // execute test of FabOS (use only, if changed some internals)
+void 	OS_TestSuite(void); // execute test of FabOS (use only, if changed some internals)
 #endif
 
 #if OS_USECOMBINED == 1
-void OS_WaitTicks( uint16_t numTicks ); // Wait for a certain number of OS-ticks(1 = wait to the next timer interrupt);
+void 	OS_WaitTicks( uint16_t numTicks ); // Wait for a certain number of OS-ticks(1 = wait to the next timer interrupt);
 uint8_t OS_WaitEventTimeout(uint8_t EventMask, uint16_t numTicks ); //returns 0 on event, 1 on timeout.
 #endif
 
@@ -110,6 +112,9 @@ void OS_Int_ProcessAlarms(void);
 
 
 // *********  CPU related assembler stuff
+
+#define OS_ENTERCRITICAL cli()
+#define OS_LEAVECRITICAL sei()
 
 // Save all CPU registers on the AVR chip.
 // The last two lines save the Status Reg.
@@ -201,15 +206,15 @@ asm volatile( \
 #endif
 
 #if (OS_DO_TESTSUITE == 1) && (\
-		(NUMTASKS !=3) ||\
-		(NUMMUTEX !=3) ||\
+		(OS_NUMTASKS !=3) ||\
+		(OS_NUMMUTEX !=3) ||\
 		(OS_USECLOCK !=1) ||\
-		(OS_USECHECKS !=1) ||\
+		(OS_USEMEMCHECKS !=1) ||\
 		(OS_USECOMBINED !=1) \
 		) 
 		#error please configure for the testsuite as stated here!
 #endif
 
-#if OS_USECHECKS == 0
+#if OS_USEMEMCHECKS == 0
 	#undef UNUSEDMASK
 #endif

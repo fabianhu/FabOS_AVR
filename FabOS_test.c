@@ -1,6 +1,18 @@
+/*
+	FabOS for ATMEL AVR
+	tested on WinAVR 20090913 and Mega32
+	
+	(c) 2009 Fabian Huslik
+
+	This is the file, which implememts automated software testing of the OS modules.
+	This file should only be altered if really necessary.
+	It does not contain any code, which is useful for production use of FabOS.
+
+*/
+
 #include "FabOS.h"
 
-#if OS_DO_TESTSUITE == 1
+#if OS_DO_TESTSUITE == 1 // compile only if tests are activated (OS development use only)
 
 void TestTask0(void);
 void TestTask1(void);

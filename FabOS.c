@@ -1,6 +1,14 @@
+/*
+	FabOS for ATMEL AVR
+	tested on WinAVR 20090913 and Mega32
+	
+	(c) 2009 Fabian Huslik
+
+*/
+
 #include "FabOS.h"
 
-FabOS_t MyOS; // the global instance of the struct
+FabOS_t MyOS; // the global instance of the OS struct
 
 // From linker script
 extern unsigned char __heap_start;
@@ -300,7 +308,7 @@ void OS_WaitAlarm(void) // Wait for an Alarm set by OS_SetAlarm
 	if(MyOS.CurrTask == OS_NUMTASKS) return;
 #endif
 	OS_ENTERCRITICAL; // re-enabled by reti in OS_Schedule()
-	if(MyOS.AlarmTicks[MyOS.CurrTask] > 0) // fixme this "if" could be possibly omitted.
+	if(MyOS.AlarmTicks[MyOS.CurrTask] > 0) // notice: this "if" could be possibly omitted.
 	{
 		MyOS.TaskReadyBits &= ~(1<<MyOS.CurrTask) ;  // Disable this task
 		OS_Reschedule();  // re-schedule; let the others run...

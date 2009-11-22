@@ -1,6 +1,8 @@
 /*
 	FabOS for ATMEL AVR
-	tested on WinAVR and Mega32
+	tested on WinAVR 20090913 and Mega32
+	
+	(c) 2009 Fabian Huslik
 */
 
 #include <avr/io.h>
@@ -8,25 +10,28 @@
 
 // *********  USER Configurable Block BEGIN
 
-#define OS_NUMTASKS 3 // Number of (Create)Tasks ; never >8 (idle task is not counted here!)
+#define OS_NUMTASKS 3 // Number of (OS_Create)Tasks ; never >8 (idle task is not counted here!)
 #define OS_NUMMUTEX 3 // Number of Mutexes
-
-#define OS_UNUSEDMASK 0xEE // unused Stack RAM will be filled with this byte.
 
 #define OS_ScheduleISR TIMER1_COMPA_vect // Interrupt Vector used for OS-tick generation (check out CustomOS_ISRCode if you want to add isr code)
 
 #define OS_USECLOCK 1 		// Use "OS_GetTicks()" which returns a 32bit timer tick
+
 #define OS_USEMEMCHECKS 1 		// Use "OS_get_unused_Stack()" which returns free stack space for each task
+#define OS_UNUSEDMASK 0xEE // unused Stack RAM will be filled with this byte.
+
 #define OS_USECOMBINED 1 	// Use "OS_WaitTicks()" and "OS_WaitEventTimeout()" which are easier to use, than combining alarms and events to get the functionality.
 
-#define OS_USEEXTCHECKS 0	// prevent false use of API -> does not work, but no damage.
+#define OS_USEEXTCHECKS 1	// prevent false use of API -> does not work, but no damage to OS stability.
 
-#define OS_DO_TESTSUITE 1
+#define OS_DO_TESTSUITE 1	// compile and execute the automated software tests.
 
-#define OS_QUEUE_SIZE 64 // must be 2^n (8, 16, 32, 64 ...)
+#define OS_QUEUE_SIZE 64 	// Size of a queue; must be 2^n (8, 16, 32, 64 ...)
 
 
 // *********  USER Configurable Block END 
+
+// *********  the OS data struct
 
 typedef struct FabOS_tag
 {
@@ -58,7 +63,6 @@ typedef struct OS_Queue_tag {
 
 
 extern FabOS_t MyOS;
-
 
 // *********  OS function prototypes
 
@@ -195,6 +199,7 @@ asm volatile( \
 	pop r0");
 
 
+
 // *********  some final warning calculations
 
 #if NUMMUTEX > NUMTASKS 
@@ -202,17 +207,17 @@ asm volatile( \
 #endif
 
 #if NUMTASKS >8 
-	#error only 8 tasks are possible, if you want more, you have to change the datatypes
+	#error only 8 tasks are possible, if you want more, you have to change the datatypes inside the FabOS_t struct typedef.
 #endif
 
 #if (OS_DO_TESTSUITE == 1) && (\
-		(OS_NUMTASKS !=3) ||\
-		(OS_NUMMUTEX !=3) ||\
-		(OS_USECLOCK !=1) ||\
-		(OS_USEMEMCHECKS !=1) ||\
-		(OS_USECOMBINED !=1) \
+		(	OS_NUMTASKS 	!=3	) ||\
+		(	OS_NUMMUTEX 	!=3	) ||\
+		(	OS_USECLOCK 	!=1	) ||\
+		(	OS_USEMEMCHECKS !=1	) ||\
+		(	OS_USECOMBINED 	!=1	) \
 		) 
-		#error please configure for the testsuite as stated here!
+		#error please configure the defines for the testsuite as stated above!
 #endif
 
 #if OS_USEMEMCHECKS == 0

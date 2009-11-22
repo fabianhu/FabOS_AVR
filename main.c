@@ -1,16 +1,25 @@
+/*
+	FabOS example implementation
+
+	(c) 2009 Fabian Huslik
+
+*/
+
 #include "FabOS.h"
 
-
+// *********  Prototypes
 void Task1(void);
 void Task2(void);
 void Task3(void);
 void CPU_init(void);
 
-
+// *********  Global variables
 uint8_t Task1Stack[200] ;
 uint8_t Task2Stack[200] ;
 uint8_t Task3Stack[200] ;
+// also the queues should go here...
 
+// *********  THE main()
 int main(void)
 {
 	CPU_init();
@@ -33,12 +42,14 @@ int main(void)
 
 }
 
+// *********  Code to be executed inside Timer ISR
 void OS_CustomISRCode(void)
 {
 	// TODO add your Timer ISR here
 	TCNT1 =0;  // reset the timer on ISR
 }
 
+// *********  Controller initialisation
 void CPU_init(void)
 {
 	// init timer

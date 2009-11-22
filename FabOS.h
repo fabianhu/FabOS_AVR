@@ -41,7 +41,7 @@ typedef struct FabOS_tag
 	uint8_t		EventMask[OS_NUMTASKS] ;	// The event masks for all the tasks; Index = Task ID // no event for idle task.
 	uint8_t		EventWaiting[OS_NUMTASKS]; // The mask indicates the events, the tasks are waiting for. Index = Task ID
 
-	uint8_t 	MutexOwnedByTask[OS_NUMMUTEX] ;	// Mutex-owner (contains task ID of owner)
+	uint8_t 	MutexOwnedByTask[OS_NUMMUTEX] ;	 // Mutex-owner (contains task ID of owner); only one task can own a mutex.
 	uint8_t 	MutexTaskWaiting[OS_NUMTASKS+1] ;	// Mutex-waiters (contains mutex ID) ; Index = Task ID ; The last one is the idle task.
 
 	uint8_t 	CurrTask; 				// here the NUMBER of the actual active task is set.

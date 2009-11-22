@@ -26,7 +26,7 @@ volatile uint16_t r,s,t,u;
 volatile uint8_t testvar=0;
 OS_Queue_t TestQ ={0,0,{}};
 
-#define MAXTESTCASES 7 // one more than the max ID.
+#define MAXTESTCASES 8 // one more than the max ID.
 uint8_t testcase = 0; // test case number
 uint8_t TestResults[MAXTESTCASES]; // test result array (0= OK)
 uint8_t TestProcessed[MAXTESTCASES]; // test passed array (number of processed assertions
@@ -397,6 +397,17 @@ void TestTask0(void)
 				OS_SetEvent(1<<3,1);
 				OS_WaitTicks(50);
 				// do not set the second one...
+				
+				break;
+			case 7:
+				// Nested Mutexes
+				OS_MutexGet(0);
+				WasteOfTime(1);
+				OS_MutexGet(1);
+				WasteOfTime(1);
+				OS_MutexRelease(0);
+				WasteOfTime(1);
+				OS_MutexRelease(1);
 				
 				break;
 			default:

@@ -20,7 +20,7 @@ extern unsigned char __heap_start;
 // tells the compiler not to add code to push the registers
 // it uses onto the stack or even add a RETI instruction
 // at the end. It just compiles the code inside the braces.
-// *** No direct use of stack space inside a neked function, except embedding it into a function, as this creates a valid stack frame.
+// *** No direct use of stack space inside a naked function, except embedding it into a function, as this creates a valid stack frame.
 // or use "register unsigned char counter asm("r3")";  Typically, it should be safe to use r2 through r7 that way.
 ISR  (OS_ScheduleISR) //__attribute__ ((naked,signal)) // Timer isr
 {
@@ -31,9 +31,9 @@ ISR  (OS_ScheduleISR) //__attribute__ ((naked,signal)) // Timer isr
 	MyOS.OSTicks++; 	// tick the RT-clock...
 #endif
 	
-	OS_CustomISRCode(); // Caller of Custom ISR code to be executed inside this ISR on the last tasks stack
+	OS_CustomISRCode(); // Caller of Custom ISR code to be executed inside this ISR on the last active tasks stack
 
-	OS_Int_ProcessAlarms(); // function uses stack
+	OS_Int_ProcessAlarms(); // Calculate alarms; function uses stack
 
 	// task is to be run
 	MyOS.CurrTask = OS_GetNextTaskNumber() ;
@@ -96,15 +96,19 @@ int8_t OS_GetNextTaskNumber() // which is the next task (ready and highest (= ri
 	// now "next" is the next highest prio task.
 
 	// look in mutex waiting list, if any task is blocking "next", then "next" must not run.
-	if (MyOS.MutexTaskWaiting[next] != 0xff && MyOS.MutexOwnedByTask[MyOS.MutexTaskWaiting[next]]!=0xff) // "next" is waiting for mutex
+	// if next is waiting for a task and the mutex is owned by a task then give the waiter the run.
+	if (MyOS.MutexTaskWaiting[next] != 0xff) // "next" is waiting for a mutex
 	{
-		// which task is blocking it?
-		next = MyOS.MutexOwnedByTask[MyOS.MutexTaskWaiting[next]]; 
-		// the blocker gets the run.
-		// this is also a priority inversion.
-		if(((1<<next)&MyOS.TaskReadyBits) == 0)  // special case, where the blocker is not ready to run (waiting inside mutex)
+		if(MyOS.MutexOwnedByTask[MyOS.MutexTaskWaiting[next]]!=0xff) // is the mutex still owned?
 		{
-			next = OS_NUMTASKS;
+			// which task is blocking it?
+			next = MyOS.MutexOwnedByTask[MyOS.MutexTaskWaiting[next]]; 
+			// the blocker gets the run.
+			// this is also a priority inversion.
+			if(((1<<next)&MyOS.TaskReadyBits) == 0)  // special case, where the blocker is not ready to run (waiting inside mutex)
+			{
+				next = OS_NUMTASKS; // the idle task gets the run...
+			}
 		}
 	}
 	return next;
@@ -138,22 +142,6 @@ void OS_TaskCreateInt( uint8_t TaskID, void (*t)(), uint8_t *stack, uint8_t stac
 
 	MyOS.Stacks[TaskID] -= 35;   // Create a stack frame with placeholders for all the user registers as well as the SR.
 }
-
-
-
-// Takes the task out of the list of tasks ready to run.
-// If the task is waiting on a mailbox or for a number of clock ticks
-// to pass, it is taken out of the mailbox wait list and the number of
-// clock ticks it has to wait for to be rescheduled is set to zero.
-/*void OS_TaskDestroy( int8_t taskNum ) 
-{
-	MyOS.TaskReadyBits &= ~(1<<taskNum) ;
-
-	MyOS.EventMask[taskNum]=0;
-	MyOS.EventWaiting[taskNum]=0;
-
-	MyOS.AlarmTicks[taskNum] = 0 ;
-}*/
 
 
 // Start the operating system

@@ -31,9 +31,9 @@ ISR  (OS_ScheduleISR) //__attribute__ ((naked,signal)) // Timer isr
 	MyOS.OSTicks++; 	// tick the RT-clock...
 #endif
 	
-	OS_CustomISRCode(); // Caller of Custom ISR code to be executed inside this ISR on the last active tasks stack
-
 	OS_Int_ProcessAlarms(); // Calculate alarms; function uses stack
+
+	OS_CustomISRCode(); // Caller of Custom ISR code to be executed inside this ISR on the last active tasks stack
 
 	// task is to be run
 	MyOS.CurrTask = OS_GetNextTaskNumber() ;

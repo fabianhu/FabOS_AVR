@@ -5,7 +5,7 @@
 
 */
 
-#include "FabOS.h"
+#include "OS/FabOS.h"
 
 // *********  Prototypes
 void Task1(void);
@@ -13,11 +13,14 @@ void Task2(void);
 void Task3(void);
 void CPU_init(void);
 
+
 // *********  Global variables
 uint8_t Task1Stack[200] ;
 uint8_t Task2Stack[200] ;
 uint8_t Task3Stack[200] ;
+
 // also the queues should go here...
+
 
 // *********  THE main()
 int main(void)
@@ -36,23 +39,26 @@ int main(void)
 	while(1)
 	{
 		// THIS IS the idle task which will be preemted by all other tasks.
-		// NO OS_Wait functions are allowed here!!!
+		// NO OS_Wait.. functions are allowed here!!!
+		
 		// TODO add your code here
 	}
 
 }
 
-// *********  Code to be executed inside Timer ISR
+
+// *********  Code to be executed inside Timer ISR used for the OS, defined in FabOS_config.h
 void OS_CustomISRCode(void)
 {
 	// TODO add your Timer ISR here
 	TCNT1 =0;  // reset the timer on ISR
 }
 
+
 // *********  Controller initialisation
 void CPU_init(void)
 {
-	// init timer
+	// init OS timer and interrupt
 	TCCR1A = 0b00000000;
 	TCCR1B = 0b00000011; //250kHZ timer ck
 	OCR1A  = 250; //interrupt every 1ms

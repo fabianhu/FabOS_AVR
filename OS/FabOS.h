@@ -7,29 +7,7 @@
 
 #include <avr/io.h>
 #include <avr/interrupt.h>
-
-// *********  USER Configurable Block BEGIN
-
-#define OS_NUMTASKS 3 // Number of (OS_Create)Tasks ; never >8 (idle task is not counted here!)
-#define OS_NUMMUTEX 3 // Number of Mutexes
-
-#define OS_ScheduleISR TIMER1_COMPA_vect // Interrupt Vector used for OS-tick generation (check out CustomOS_ISRCode if you want to add isr code)
-
-#define OS_USECLOCK 1 		// Use "OS_GetTicks()" which returns a 32bit timer tick
-
-#define OS_USEMEMCHECKS 1 		// Use "OS_get_unused_Stack()" which returns free stack space for each task
-#define OS_UNUSEDMASK 0xEE // unused Stack RAM will be filled with this byte.
-
-#define OS_USECOMBINED 1 	// Use "OS_WaitTicks()" and "OS_WaitEventTimeout()" which are easier to use, than combining alarms and events to get the functionality.
-
-#define OS_USEEXTCHECKS 1	// prevent false use of API -> does not work, but no damage to OS stability.
-
-#define OS_DO_TESTSUITE 1	// compile and execute the automated software tests.
-
-#define OS_QUEUE_SIZE 64 	// Size of a queue; must be 2^n (8, 16, 32, 64 ...)
-
-
-// *********  USER Configurable Block END 
+#include "../FabOS_config.h"
 
 // *********  the OS data struct
 
@@ -120,6 +98,7 @@ void OS_Int_ProcessAlarms(void);
 #define OS_ENTERCRITICAL cli()
 #define OS_LEAVECRITICAL sei()
 
+
 // Save all CPU registers on the AVR chip.
 // The last two lines save the Status Reg.
 #define OS_Int_saveCPUContext() \
@@ -202,6 +181,44 @@ asm volatile( \
 
 // *********  some final warning calculations
 
+
+#if (!defined(OS_NUMTASKS		))||\
+	(!defined(OS_NUMMUTEX 		))||\
+	(!defined(OS_ScheduleISR 	))||\
+	(!defined(OS_USECLOCK 		))||\
+	(!defined(OS_USEMEMCHECKS 	))||\
+	(!defined(OS_UNUSEDMASK 	))||\
+	(!defined(OS_USECOMBINED 	))||\
+	(!defined(OS_USEEXTCHECKS   ))||\
+	(!defined(OS_DO_TESTSUITE   ))||\
+	(!defined(OS_QUEUE_SIZE)  )	
+	#error not all defines in FabOS_config.h as below!
+#endif
+
+
+/* Example defines for FabOS_config.h     
+
+#define OS_NUMTASKS 		3		// Number of (OS_Create)Tasks ; never >8 (idle task is not counted here!)
+#define OS_NUMMUTEX 		3 		// Number of Mutexes
+
+#define OS_ScheduleISR 		TIMER1_COMPA_vect // Interrupt Vector used for OS-tick generation (check out CustomOS_ISRCode if you want to add isr code)
+
+#define OS_USECLOCK 		1 		// Use "OS_GetTicks()" which returns a 32bit timer tick
+
+#define OS_USEMEMCHECKS 	1 		// Use "OS_get_unused_Stack()" which returns free stack space for each task
+#define OS_UNUSEDMASK 		0xEE 	// unused Stack RAM will be filled with this byte.
+
+#define OS_USECOMBINED 		1 		// Use "OS_WaitTicks()" and "OS_WaitEventTimeout()" which are easier to use, than combining alarms and events to get the functionality.
+
+#define OS_USEEXTCHECKS 	1		// prevent false use of API -> does not work, but no damage to OS stability.
+
+#define OS_DO_TESTSUITE 	1		// compile and execute the automated software tests.
+
+#define OS_QUEUE_SIZE 		64 		// Size of a queue; must be 2^n (8, 16, 32, 64 ...)
+
+*/
+
+
 #if NUMMUTEX > NUMTASKS 
 	#warning more mutexes than tasks? are you serious with that concept?
 #endif
@@ -209,6 +226,7 @@ asm volatile( \
 #if NUMTASKS >8 
 	#error only 8 tasks are possible, if you want more, you have to change the datatypes inside the FabOS_t struct typedef.
 #endif
+
 
 #if (OS_DO_TESTSUITE == 1) && (\
 		(	OS_NUMTASKS 	!=3	) ||\

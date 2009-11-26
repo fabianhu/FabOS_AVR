@@ -226,7 +226,7 @@ void OS_SetEvent(uint8_t EventMask, uint8_t TaskID) // Set one or more events
 uint8_t OS_WaitEvent(uint8_t EventMask) //returns event(s), which lead to execution
 {
 #if OS_USEEXTCHECKS == 1
-	if(MyOS.CurrTask == OS_NUMTASKS) return 0;
+	if(MyOS.CurrTask == OS_NUMTASKS) return 0; // waiting in idle is not allowed
 #endif
 
 	uint8_t ret;
@@ -293,7 +293,7 @@ void OS_SetAlarm(uint8_t TaskID, uint16_t numTicks ) // set Alarm for the future
 void OS_WaitAlarm(void) // Wait for an Alarm set by OS_SetAlarm 
 {
 #if OS_USEEXTCHECKS == 1
-	if(MyOS.CurrTask == OS_NUMTASKS) return;
+	if(MyOS.CurrTask == OS_NUMTASKS) return;  // waiting in idle is not allowed
 #endif
 	OS_ENTERCRITICAL; // re-enabled by reti in OS_Schedule()
 	if(MyOS.AlarmTicks[MyOS.CurrTask] > 0) // notice: this "if" could be possibly omitted.
@@ -420,7 +420,7 @@ void OS_GetTicks(uint32_t* pTime)
 void OS_WaitTicks( uint16_t numTicks ) // Wait for a certain number of OS-ticks (1 = wait to the next timer interrupt)
 {
 #if OS_USEEXTCHECKS == 1
-	if(MyOS.CurrTask == OS_NUMTASKS) return;
+	if(MyOS.CurrTask == OS_NUMTASKS) return;  // waiting in idle is not allowed
 #endif
 	OS_SetAlarm(MyOS.CurrTask, numTicks);
 	OS_WaitAlarm();
@@ -429,7 +429,7 @@ void OS_WaitTicks( uint16_t numTicks ) // Wait for a certain number of OS-ticks 
 uint8_t OS_WaitEventTimeout(uint8_t EventMask, uint16_t numTicks ) //returns event on event, 0 on timeout.
 {
 #if OS_USEEXTCHECKS == 1
-	if(MyOS.CurrTask == OS_NUMTASKS) return 0;
+	if(MyOS.CurrTask == OS_NUMTASKS) return 0;  // waiting in idle is not allowed
 #endif
 	uint8_t ret;
 	OS_SetAlarm(MyOS.CurrTask,numTicks); // set timeout

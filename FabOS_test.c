@@ -10,7 +10,7 @@
 
 */
 
-#include "FabOS.h"
+#include "OS/FabOS.h"
 
 #if OS_DO_TESTSUITE == 1 // compile only if tests are activated (OS development use only)
 

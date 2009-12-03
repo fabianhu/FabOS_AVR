@@ -79,9 +79,30 @@ void 	OS_GetTicks(uint32_t* pTime); // fills given variable with the OS ticks si
 void 	OS_TestSuite(void); // execute test of FabOS (use only, if changed some internals)
 #endif
 
+
+#define OS_DoEvery(X) do{\
+						OS_WaitAlarm();\
+						OS_SetAlarm(myOS.CurrTask,X);\
+						}while(0)
+
+
+// Wait for a certain number of OS-ticks (1 = wait to the next timer interrupt)
+
 #if OS_USECOMBINED == 1
-void 	OS_WaitTicks( uint16_t numTicks ); // Wait for a certain number of OS-ticks(1 = wait to the next timer interrupt);
 uint8_t OS_WaitEventTimeout(uint8_t EventMask, uint16_t numTicks ); //returns 0 on event, 1 on timeout.
+#endif
+
+#if OS_USEEXTCHECKS == 1
+	#define OS_WaitTicks(X) do{\
+		if(MyOS.CurrTask == OS_NUMTASKS) return;\
+		OS_SetAlarm(MyOS.CurrTask,X);\
+		OS_WaitAlarm();\
+		}while(0)
+#else
+	#define OS_WaitTicks(X) do{\
+		OS_SetAlarm(MyOS.CurrTask,X);\
+		OS_WaitAlarm();\
+		}while(0)
 #endif
 
 

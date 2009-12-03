@@ -416,16 +416,6 @@ void OS_GetTicks(uint32_t* pTime)
 
 
 #if OS_USECOMBINED
-
-void OS_WaitTicks( uint16_t numTicks ) // Wait for a certain number of OS-ticks (1 = wait to the next timer interrupt)
-{
-#if OS_USEEXTCHECKS == 1
-	if(MyOS.CurrTask == OS_NUMTASKS) return;  // waiting in idle is not allowed
-#endif
-	OS_SetAlarm(MyOS.CurrTask, numTicks);
-	OS_WaitAlarm();
-}
-
 uint8_t OS_WaitEventTimeout(uint8_t EventMask, uint16_t numTicks ) //returns event on event, 0 on timeout.
 {
 #if OS_USEEXTCHECKS == 1

@@ -80,12 +80,6 @@ void 	OS_TestSuite(void); // execute test of FabOS (use only, if changed some in
 #endif
 
 
-#define OS_DoEvery(X) do{\
-						OS_WaitAlarm();\
-						OS_SetAlarm(myOS.CurrTask,X);\
-						}while(0)
-
-
 // Wait for a certain number of OS-ticks (1 = wait to the next timer interrupt)
 
 #if OS_USECOMBINED == 1

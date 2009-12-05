@@ -308,8 +308,8 @@ void OS_WaitAlarm(void) // Wait for an Alarm set by OS_SetAlarm
 }
 
 // ************************** QUEUES
-
-uint8_t OS_QueueIn(OS_Queue_t* pQueue , uint8_t byte) // Put byte into queue, return 1 if q full.
+/* one byte queues
+uint8_t OS_QueueIn(OS_Queue_t* pQueue , uint8_t* pByte) // Put byte into queue, return 1 if q full.
 {
 	uint8_t next;
 	OS_ENTERCRITICAL;
@@ -319,7 +319,7 @@ uint8_t OS_QueueIn(OS_Queue_t* pQueue , uint8_t byte) // Put byte into queue, re
 		OS_LEAVECRITICAL;
 		return 1; // queue full
 	}
-	pQueue->data[pQueue->write] = byte;
+	pQueue->data[pQueue->write] = *pByte;
 	// pQueue->data[pQueue->write & QUEUE_MASK] = byte; // absolute secure
 	pQueue->write = next;
 	OS_LEAVECRITICAL;
@@ -339,47 +339,65 @@ uint8_t OS_QueueOut(OS_Queue_t* pQueue, uint8_t *pByte) // Get a byte out of the
 	OS_LEAVECRITICAL;
 	return 0;
 }
-
-
-/* alternatively
-
-#define QUEUE_SIZE 23
- 
-struct Queue {
-  uint8_t data[QUEUE_SIZE];
-  uint8_t read; // zeigt auf das Feld mit dem ältesten Inhalt
-  uint8_t write; // zeigt immer auf leeres Feld
-} Queue = {{}, 0, 0};
- 
-uint8_t QueueIn(uint8_t byte)
-{
-  //if (write >= QUEUE_SIZE)
-  //  write = 0; // erhöht sicherheit
- 
-  if (Queue.write + 1 == Queue.read || Queue.read == 0 && Queue.write + 1 == Queue_SIZE)
-    return FAIL; // voll
- 
-  Queue.data[Queue.write] = byte;
- 
-  Queue.write = Queue.write + 1;
-  if (Queue.write >= QUEUE_SIZE)
-    Queue.write = 0;
-}
- 
-uint8_t QueueOut(uint8_t *pByte)
-{
-  if (Queue.read == Queue.write)
-    return FAIL;
-  *pByte = Queue.data[Queue.read];
- 
-  Queue.read = Queue.read + 1;
-  if (Queue.read >= QUEUE_SIZE)
-    Queue.read = 0;
-  return SUCCESS;
-}
-
-
 */
+
+/* multi-byte queues
+
+
+typedef struct OS_Queue_tag {
+	  uint8_t read; // field with oldest content
+	  uint8_t write; // always empty field
+	  uint8_t chunk;
+	  uint8_t size;
+	  uint8_t* data;
+	} OS_Queue_t;
+*/
+
+uint8_t OS_QueueIn(OS_Queue_t* pQueue , uint8_t* pByte)
+{
+	uint8_t i;
+	OS_ENTERCRITICAL;
+	if (pQueue->write + pQueue->chunk == pQueue->read || (pQueue->read == 0 && pQueue->write + pQueue->chunk == pQueue->size))
+	{
+		OS_LEAVECRITICAL;
+		return 1;  // queue full
+	}
+
+	for(i=0;i<pQueue->chunk;i++)
+	{
+		pQueue->data[pQueue->write] = *pByte++;
+		pQueue->write = pQueue->write + 1;
+		if (pQueue->write >= pQueue->size)
+			pQueue->write = 0;
+	}
+	OS_LEAVECRITICAL;
+	return 0;
+}
+ 
+uint8_t OS_QueueOut(OS_Queue_t* pQueue , uint8_t* pByte)
+{
+	uint8_t i;
+	OS_ENTERCRITICAL;
+	if (pQueue->read == pQueue->write)
+	{
+		OS_LEAVECRITICAL;
+		return 1; // queue empty
+	}
+
+	for(i=0;i<pQueue->chunk;i++)
+	{
+		*pByte++ = pQueue->data[pQueue->read];
+		pQueue->read = pQueue->read + 1;
+		if (pQueue->read >= pQueue->size)
+			pQueue->read = 0;
+	}
+
+	OS_LEAVECRITICAL;
+	return 0;
+}
+
+
+
 
 
 // *********************** Aux functions

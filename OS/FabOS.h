@@ -34,11 +34,14 @@ typedef struct FabOS_tag
 #define OS_QUEUE_MASK (OS_QUEUE_SIZE-1) // don't forget the braces
  
 typedef struct OS_Queue_tag {
-  uint8_t read; // field with oldest content
-  uint8_t write; // always empty field
-  uint8_t data[OS_QUEUE_SIZE];
-} OS_Queue_t; 
+	  uint8_t read; // field with oldest content
+	  uint8_t write; // always empty field
+	  uint8_t chunk;
+	  uint8_t size;
+	  uint8_t* data;
+	} OS_Queue_t;
 
+#define OS_QueueDefine(NAME,COUNT,CHUNK) uint8_t OSQD##NAME[COUNT*CHUNK]; OS_Queue_t NAME = {0,0,CHUNK,COUNT*CHUNK,OSQD##NAME}
 
 extern FabOS_t MyOS;
 
@@ -63,9 +66,9 @@ void 	OS_SetAlarm(uint8_t TaskID, uint16_t numTicks ); // set Alarm for the futu
 
 void 	OS_WaitAlarm(void); // Wait for an Alarm set by OS_SetAlarm 
 
-uint8_t OS_QueueIn(OS_Queue_t* pQueue , uint8_t byte); // Put byte into queue, return 1 if q full.
+uint8_t OS_QueueIn(OS_Queue_t* pQueue , uint8_t *pData); // Put byte into queue, return 1 if q full.
 
-uint8_t OS_QueueOut(OS_Queue_t* pQueue, uint8_t *pByte); // Get a byte out of the queue, return 1 if q empty.
+uint8_t OS_QueueOut(OS_Queue_t* pQueue, uint8_t *pData); // Get a byte out of the queue, return 1 if q empty.
 
 #if OS_USEMEMCHECKS == 1
 uint16_t OS_GetUnusedStack (uint8_t TaskID); // give the free stack space for any task as result.

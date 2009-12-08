@@ -208,8 +208,7 @@ asm volatile( \
 	(!defined(OS_UNUSEDMASK 	))||\
 	(!defined(OS_USECOMBINED 	))||\
 	(!defined(OS_USEEXTCHECKS   ))||\
-	(!defined(OS_DO_TESTSUITE   ))||\
-	(!defined(OS_QUEUE_SIZE)  )	
+	(!defined(OS_DO_TESTSUITE   ))
 	#error not all defines in FabOS_config.h as below!
 #endif
 
@@ -232,8 +231,6 @@ asm volatile( \
 
 #define OS_DO_TESTSUITE 	1		// compile and execute the automated software tests.
 
-#define OS_QUEUE_SIZE 		64 		// Size of a queue; must be 2^n (8, 16, 32, 64 ...)
-
 */
 
 
@@ -242,7 +239,7 @@ asm volatile( \
 #endif
 
 #if NUMTASKS >8 
-	#error only 8 tasks are possible, if you want more, you have to change the datatypes inside the FabOS_t struct typedef.
+	#error only 8 tasks are possible, if you want more, you have to change some datatypes inside the FabOS_t struct typedef.
 #endif
 
 

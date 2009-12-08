@@ -3,8 +3,6 @@
 #define OS_NUMTASKS 3 // Number of (OS_Create)Tasks ; never >8 (idle task is not counted here!)
 #define OS_NUMMUTEX 3 // Number of Mutexes
 
-#define OS_QUEUE_SIZE 64 	// Size of a queue; must be 2^n (8, 16, 32, 64, 128, 256)
-
 #define OS_ScheduleISR TIMER1_COMPA_vect // Interrupt Vector used for OS-tick generation (check out CustomOS_ISRCode if you want to add isr code)
 
 #define OS_USECLOCK 1 		// Use "OS_GetTicks()" which returns a 32bit timer tick

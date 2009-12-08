@@ -49,7 +49,7 @@ extern FabOS_t MyOS;
 
 #define OS_DefineTask(NAME,STACKSIZE) void NAME(void); uint8_t Stack##NAME[STACKSIZE];
 
-#define OS_CreateTask(NAME, PRIO)  OS_TaskCreateInt(NAME, PRIO, Stack##NAME , sizeof(Stack##NAME))
+#define OS_CreateTask(NAME, PRIO)  OS_CreateTaskInt(NAME, PRIO, Stack##NAME , sizeof(Stack##NAME))
 
 
 // *********  OS function prototypes
@@ -111,7 +111,7 @@ uint8_t OS_WaitEventTimeout(uint8_t EventMask, uint16_t numTicks ); //returns 0 
 // *********  internal OS functions, not to be called by the user.
 ISR (OS_ScheduleISR)__attribute__ ((naked,signal)); // OS tick interrupt function (vector #defined above)
 
-void OS_TaskCreateInt( void (*t)(), uint8_t taskNum, uint8_t *stack, uint8_t stackSize ) ; // Create the task internal
+void OS_CreateTaskInt( void (*t)(), uint8_t taskNum, uint8_t *stack, uint8_t stackSize ) ; // Create the task internal
 
 void OS_Reschedule(void)__attribute__ ((naked)); // internal: Trigger re-scheduling
 

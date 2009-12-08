@@ -7,19 +7,16 @@
 
 #include "OS/FabOS.h"
 
+// *********  Task definitions
+OS_DefineTask(Task1,200);
+OS_DefineTask(Task2,200);
+OS_DefineTask(Task3,200);
+
+OS_DefineQueue(DemoQ,10,4);
+
 // *********  Prototypes
-void Task1(void);
-void Task2(void);
-void Task3(void);
 void CPU_init(void);
 
-
-// *********  Global variables
-uint8_t Task1Stack[200] ;
-uint8_t Task2Stack[200] ;
-uint8_t Task3Stack[200] ;
-
-// also the queues should go here...
 
 
 // *********  THE main()
@@ -31,9 +28,9 @@ int main(void)
 	OS_TestSuite(); // call automated tests of OS.
 #endif
 
-    OS_TaskCreate(0, Task1, Task1Stack);
-    OS_TaskCreate(1, Task2, Task2Stack);
-    OS_TaskCreate(2, Task3, Task3Stack);
+    OS_CreateTask(Task1, 0);
+    OS_CreateTask(Task2, 1);
+    OS_CreateTask(Task3, 2);
 
 	OS_StartExecution() ;
 	while(1)

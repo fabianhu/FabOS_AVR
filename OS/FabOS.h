@@ -41,15 +41,20 @@ typedef struct OS_Queue_tag {
 	  uint8_t* data;
 	} OS_Queue_t;
 
-#define OS_QueueDefine(NAME,COUNT,CHUNK) uint8_t OSQD##NAME[COUNT*CHUNK]; OS_Queue_t NAME = {0,0,CHUNK,COUNT*CHUNK,OSQD##NAME}
-
 extern FabOS_t MyOS;
+
+// *********  Macros to simplify the API
+
+#define OS_DefineQueue(NAME,COUNT,CHUNK) uint8_t OSQD##NAME[COUNT*CHUNK]; OS_Queue_t NAME = {0,0,CHUNK,COUNT*CHUNK,OSQD##NAME}
+
+#define OS_DefineTask(NAME,STACKSIZE) void NAME(void); uint8_t Stack##NAME[STACKSIZE];
+
+#define OS_CreateTask(NAME, PRIO)  OS_TaskCreateInt(NAME, PRIO, Stack##NAME , sizeof(Stack##NAME))
+
 
 // *********  OS function prototypes
 
 void 	OS_CustomISRCode(); // do not call; just fill in your code.
-
-#define OS_TaskCreate( X, Y, Z )  OS_TaskCreateInt(X,Y, Z , sizeof(Z))// Macro to simplify the API
 
 void 	OS_StartExecution(); // Start the operating system
 
@@ -105,9 +110,13 @@ uint8_t OS_WaitEventTimeout(uint8_t EventMask, uint16_t numTicks ); //returns 0 
 
 // *********  internal OS functions, not to be called by the user.
 ISR (OS_ScheduleISR)__attribute__ ((naked,signal)); // OS tick interrupt function (vector #defined above)
-void OS_TaskCreateInt( uint8_t taskNum, void (*t)(), uint8_t *stack, uint8_t stackSize ) ; // Create the task internal
+
+void OS_TaskCreateInt( void (*t)(), uint8_t taskNum, uint8_t *stack, uint8_t stackSize ) ; // Create the task internal
+
 void OS_Reschedule(void)__attribute__ ((naked)); // internal: Trigger re-scheduling
+
 int8_t OS_GetNextTaskNumber(); // internal: get the next task to be run// which is the next task (ready and highest (= rightmost); prio);?
+
 void OS_Int_ProcessAlarms(void);
 
 

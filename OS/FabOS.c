@@ -115,7 +115,7 @@ int8_t OS_GetNextTaskNumber() // which is the next task (ready and highest (= ri
 }
 
 // internal task create function
-void OS_TaskCreateInt( uint8_t TaskID, void (*t)(), uint8_t *stack, uint8_t stackSize ) 
+void OS_TaskCreateInt( void (*t)(), uint8_t TaskID, uint8_t *stack, uint8_t stackSize ) 
 {
 	uint16_t z ;
 #if OS_USEMEMCHECKS == 1

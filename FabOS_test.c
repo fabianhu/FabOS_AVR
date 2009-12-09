@@ -277,7 +277,7 @@ void TestTask2(void)
 				WasteOfTime(50);
 				assert(testvar == 7);
 				OS_MutexRelease(0);
-				OS_SetEvent(1<<1,1);
+				OS_SetEvent(1,1<<1);
 				// 2:mutex is occupied
 				OS_MutexGet(0);
 				testvar = 4;
@@ -351,21 +351,21 @@ void TestTask0(void)
 				testvar =0;
 				OS_WaitTicks(10);
 				assert(testvar==1);
-				OS_SetEvent(1<<0,1);
+				OS_SetEvent(1,1<<0);
 				OS_WaitTicks(2);
 				assert(testvar==2);
 // A occurs, then wait for A
 				testvar =3;
-				OS_SetEvent(1<<0,1);
+				OS_SetEvent(1,1<<0);
 				assert(testvar==3);
 				OS_WaitTicks(100); // other task wastes time...
 				assert(testvar==4);
 // wait for more events, one occurs, then the other
-				OS_SetEvent(1<<2,1);
+				OS_SetEvent(1,1<<2);
 				assert(testvar==4);
 				OS_WaitTicks(10);
 				assert(testvar==6);
-				OS_SetEvent(1<<1,1);
+				OS_SetEvent(1,1<<1);
 				assert(testvar==6);
 				OS_WaitTicks(10);
 				assert(testvar==8);
@@ -385,14 +385,14 @@ void TestTask0(void)
 					ret = OS_QueueIn(&TestQ,&i);
 					assert(ret==0);
 				}
-				OS_SetEvent(1<<6,1);
+				OS_SetEvent(1,1<<6);
 				OS_WaitTicks(50);
 				for (i=20;i>0;i--) // backward
 				{
 					ret = OS_QueueIn(&TestQ,&i);
 					assert(ret==0);
 				}
-				OS_SetEvent(1<<6,1);
+				OS_SetEvent(1,1<<6);
 				OS_WaitTicks(50);
 				for (i=0;i<63;i++) // overload the Q (only 63 of 64 usable for indication full/empty)
 				{
@@ -412,7 +412,7 @@ void TestTask0(void)
 				break;
 			case 6:
 				// Event with timeout
-				OS_SetEvent(1<<3,1);
+				OS_SetEvent(1,1<<3);
 				OS_WaitTicks(50);
 				// do not set the second one...
 				
@@ -463,8 +463,8 @@ void TestTask0(void)
 		OS_WaitTicks(500); // wait for tests to be processed...
 
 		testcase++;
-		OS_SetEvent(1<<7,1);
-		OS_SetEvent(1<<7,2);	
+		OS_SetEvent(1,1<<7);
+		OS_SetEvent(2,1<<7);	
 	}//while(1)
 
 

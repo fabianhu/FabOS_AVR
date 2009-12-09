@@ -115,7 +115,7 @@ int8_t OS_GetNextTaskNumber() // which is the next task (ready and highest (= ri
 }
 
 // internal task create function
-void OS_CreateTaskInt( void (*t)(), uint8_t TaskID, uint8_t *stack, uint8_t stackSize ) 
+void OS_TaskCreateInt( void (*t)(), uint8_t TaskID, uint8_t *stack, uint8_t stackSize ) 
 {
 	uint16_t z ;
 #if OS_USEMEMCHECKS == 1
@@ -200,7 +200,7 @@ void OS_MutexRelease(int8_t mutexID)
 
 // ************************** EVENTS
 
-void OS_SetEvent(uint8_t EventMask, uint8_t TaskID) // Set one or more events
+void OS_SetEvent(uint8_t TaskID, uint8_t EventMask) // Set one or more events
 {
 	OS_ENTERCRITICAL;
 	MyOS.EventMask[TaskID] |= EventMask; // set the event mask, as there may be more events than waited for.

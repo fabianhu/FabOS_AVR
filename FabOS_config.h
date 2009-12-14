@@ -8,7 +8,7 @@
 #define OS_USECLOCK 1 		// Use "OS_GetTicks()" which returns a 32bit timer tick
 #define OS_USECOMBINED 1 	// Use "OS_WaitEventTimeout()" which is easier to use, than combining alarms and events to get the functionality.
 #define OS_USEEXTCHECKS 1	// prevent false use of API -> does not work, but no damage to OS stability.
-#define OS_USEMEMCHECKS 1 		// Use "OS_get_unused_Stack()" which returns free stack space for each task
+#define OS_USEMEMCHECKS 1 	// Use "OS_get_unused_Stack()" which returns free stack space for each task
 #define OS_UNUSEDMASK 0xEE // unused Stack RAM will be filled with this byte.
 
 

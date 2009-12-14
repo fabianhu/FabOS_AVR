@@ -202,6 +202,13 @@ void OS_MutexRelease(int8_t mutexID)
 
 void OS_SetEvent(uint8_t TaskID, uint8_t EventMask) // Set one or more events
 {
+#if OS_USEEXTCHECKS == 1
+	if(TaskID == OS_NUMTASKS) 
+	{
+		OS_ErrorHook(6);// OS_SetEvent: idle can not handle events
+		return ; 
+	}
+#endif
 	OS_ENTERCRITICAL;
 	MyOS.EventMask[TaskID] |= EventMask; // set the event mask, as there may be more events than waited for.
 
@@ -226,7 +233,11 @@ void OS_SetEvent(uint8_t TaskID, uint8_t EventMask) // Set one or more events
 uint8_t OS_WaitEvent(uint8_t EventMask) //returns event(s), which lead to execution
 {
 #if OS_USEEXTCHECKS == 1
-	if(MyOS.CurrTask == OS_NUMTASKS) return 0; // waiting in idle is not allowed
+	if(MyOS.CurrTask == OS_NUMTASKS) 
+	{
+		OS_ErrorHook(2);// OS_WaitEvent: waiting in idle is not allowed
+		return 0; 
+	}
 #endif
 
 	uint8_t ret;
@@ -286,6 +297,13 @@ alles klar?
 void OS_SetAlarm(uint8_t TaskID, uint16_t numTicks ) // set Alarm for the future and continue // set alarm to 0 disable an alarm.
 {
 	OS_ENTERCRITICAL;
+#if OS_USEEXTCHECKS == 1
+	if(MyOS.AlarmTicks[TaskID] != 0) 
+	{
+		OS_ErrorHook(3);// OS_SetAlarm: Multiple alarm per task; task is already waiting.
+		return;  
+	}
+#endif	
 	MyOS.AlarmTicks[TaskID] = numTicks ;
 	OS_LEAVECRITICAL;
 }
@@ -293,7 +311,11 @@ void OS_SetAlarm(uint8_t TaskID, uint16_t numTicks ) // set Alarm for the future
 void OS_WaitAlarm(void) // Wait for an Alarm set by OS_SetAlarm 
 {
 #if OS_USEEXTCHECKS == 1
-	if(MyOS.CurrTask == OS_NUMTASKS) return;  // waiting in idle is not allowed
+	if(MyOS.CurrTask == OS_NUMTASKS) 
+	{
+		OS_ErrorHook(4);// OS_WaitAlarm: waiting in idle is not allowed
+		return;  
+	}
 #endif
 	OS_ENTERCRITICAL; // re-enabled by reti in OS_Schedule()
 	if(MyOS.AlarmTicks[MyOS.CurrTask] > 0) // notice: this "if" could be possibly omitted.
@@ -436,9 +458,6 @@ void OS_GetTicks(uint32_t* pTime)
 #if OS_USECOMBINED
 uint8_t OS_WaitEventTimeout(uint8_t EventMask, uint16_t numTicks ) //returns event on event, 0 on timeout.
 {
-#if OS_USEEXTCHECKS == 1
-	if(MyOS.CurrTask == OS_NUMTASKS) return 0;  // waiting in idle is not allowed
-#endif
 	uint8_t ret;
 	OS_SetAlarm(MyOS.CurrTask,numTicks); // set timeout
 	ret = OS_WaitEvent(EventMask);
@@ -455,3 +474,4 @@ uint8_t OS_WaitEventTimeout(uint8_t EventMask, uint16_t numTicks ) //returns eve
 	}
 }
 #endif
+

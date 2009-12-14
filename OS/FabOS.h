@@ -75,6 +75,10 @@ uint8_t OS_QueueIn(OS_Queue_t* pQueue , uint8_t *pData); // Put byte into queue,
 
 uint8_t OS_QueueOut(OS_Queue_t* pQueue, uint8_t *pData); // Get a byte out of the queue, return 1 if q empty.
 
+#if OS_USEEXTCHECKS == 1
+	void OS_ErrorHook(uint8_t);
+#endif
+
 #if OS_USEMEMCHECKS == 1
 uint16_t OS_GetUnusedStack (uint8_t TaskID); // give the free stack space for any task as result.
 #endif
@@ -94,18 +98,11 @@ void 	OS_TestSuite(void); // execute test of FabOS (use only, if changed some in
 uint8_t OS_WaitEventTimeout(uint8_t EventMask, uint16_t numTicks ); //returns 0 on event, 1 on timeout.
 #endif
 
-#if OS_USEEXTCHECKS == 1
-	#define OS_WaitTicks(X) do{\
-		if(MyOS.CurrTask == OS_NUMTASKS) return;\
+#define OS_WaitTicks(X) do{\
 		OS_SetAlarm(MyOS.CurrTask,X);\
 		OS_WaitAlarm();\
 		}while(0)
-#else
-	#define OS_WaitTicks(X) do{\
-		OS_SetAlarm(MyOS.CurrTask,X);\
-		OS_WaitAlarm();\
-		}while(0)
-#endif
+
 
 
 // *********  internal OS functions, not to be called by the user.

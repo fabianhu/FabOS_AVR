@@ -70,3 +70,31 @@ void CPU_init(void)
 }
 
 
+#if OS_USEEXTCHECKS == 1
+void OS_ErrorHook(uint8_t ErrNo)
+{
+	static uint8_t dummy =0;
+	
+	switch(ErrNo)
+	{
+		case 2:
+			// OS_WaitEvent: waiting in idle is not allowed
+			break;	
+		case 3:
+			// OS_SetAlarm: Multiple alarm per task
+			break;	
+		case 4:
+			// OS_WaitAlarm: waiting in idle is not allowed
+			break;	
+		default:
+			break;	
+
+	}
+	
+	dummy = ErrNo; // dummy code
+	#if OS_DO_TESTSUITE == 1
+	asm("break");
+	#endif
+}
+#endif
+

@@ -1,8 +1,12 @@
 /*
 	FabOS for ATMEL AVR
-	tested on WinAVR 20090913 and Mega32
 	
 	(c) 2009 Fabian Huslik
+
+	This software is free for use in private, educational or evaluation applications.
+	For commercial use a license is necessary.
+
+	contact FabOS@huslik-elektronik.de for support and license.
 
 */
 
@@ -14,12 +18,8 @@ FabOS_t MyOS; // the global instance of the OS struct
 extern unsigned char __heap_start;
 
 // *********  Timer Interrupt
-
-// ISR(TIMER0_OVF_vect) __attribute__ ((naked,signal));
-// Prototype for the INT0 ISR is in FabOS.h. The naked attribute
-// tells the compiler not to add code to push the registers
-// it uses onto the stack or even add a RETI instruction
-// at the end. It just compiles the code inside the braces.
+// The naked attribute tells the compiler not to add code to push the registers it uses onto the stack or even add a RETI instruction at the end. 
+// It just compiles the code inside the braces.
 // *** No direct use of stack space inside a naked function, except embedding it into a function, as this creates a valid stack frame.
 // or use "register unsigned char counter asm("r3")";  Typically, it should be safe to use r2 through r7 that way.
 ISR  (OS_ScheduleISR) //__attribute__ ((naked,signal)) // Timer isr
@@ -184,6 +184,7 @@ void OS_MutexGet(int8_t mutexID)
 		MyOS.MutexTaskWaiting[MyOS.CurrTask] = mutexID; // set waiting info for priority inversion of scheduler
 		OS_Reschedule(); // also re-enables interrupts...
 		OS_ENTERCRITICAL;
+		// we only get here, if the other has released the mutex.
 		MyOS.MutexTaskWaiting[MyOS.CurrTask] = 0xff; // remove waiting info
 	}
 	MyOS.MutexOwnedByTask[mutexID] = MyOS.CurrTask; // tell others, that I am the owner.
@@ -261,36 +262,6 @@ uint8_t OS_WaitEvent(uint8_t EventMask) //returns event(s), which lead to execut
 	return ret;
 }
 
-/*
-Mutex Prinzip:
-
-Ein Task holt sich den Mutex
-Taskwechsel
-Ein anderer B hätte Ihn gerne
-Muss warten, Task A kommt dran
-Task A ist fertig und gibt an Task B ab, der ja immer noch eigentlich dran wäre.
-
-Der Task, der den Mutex haben will, muss schauen, ob ihn nicht ein anderer hat.
-Wenn nein, holt er sich den Mutex.
-Wenn ja, bekommt der Task, der den Mutex hat, den Prozessor.
-Wenn der fertig ist, ruft er den scheduler auf, der den nächsten Blockierer aufruft.
-
-Mutex zustände:
-Task schaut, ob der Mutex frei ist (0xff)
-Inhaber schreibt seine ID in den Mutex (Array), wenn er ihn hat.
-
-Reschedule ISR stößt auf eine Mutex-Waiting-Situation:
-Task prio rausfinden; 
-Wenn der Task, der dran wäre, nicht auf einen Mutex wartet, 
-oder einen hat, weiter wie normal.
-
-Wenn der Task, der dran wäre, auf einen Mutex wartet, 
-muss der Inhaber des Mutex drankommen. Nach Abschluss scheduled der nochmal.
-
-alles klar?
-
-*/
-
 
 // ************************** ALARMS
 
@@ -330,42 +301,7 @@ void OS_WaitAlarm(void) // Wait for an Alarm set by OS_SetAlarm
 }
 
 // ************************** QUEUES
-/* one byte queues
-uint8_t OS_QueueIn(OS_Queue_t* pQueue , uint8_t* pByte) // Put byte into queue, return 1 if q full.
-{
-	uint8_t next;
-	OS_ENTERCRITICAL;
-	next = ((pQueue->write + 1) & OS_QUEUE_MASK);
-	if (pQueue->read == next)
-	{
-		OS_LEAVECRITICAL;
-		return 1; // queue full
-	}
-	pQueue->data[pQueue->write] = *pByte;
-	// pQueue->data[pQueue->write & QUEUE_MASK] = byte; // absolute secure
-	pQueue->write = next;
-	OS_LEAVECRITICAL;
-	return 0;
-}
- 
-uint8_t OS_QueueOut(OS_Queue_t* pQueue, uint8_t *pByte) // Get a byte out of the queue, return 1 if q empty.
-{
-	OS_ENTERCRITICAL;
-	if (pQueue->read == pQueue->write)
-	{
-		OS_LEAVECRITICAL;
-		return 1; // queue empty
-	}
-	*pByte = pQueue->data[pQueue->read];
-	pQueue->read = (pQueue->read+1) & OS_QUEUE_MASK;
-	OS_LEAVECRITICAL;
-	return 0;
-}
-*/
-
-/* multi-byte queues
-
-
+/* in FabOS.h we have:
 typedef struct OS_Queue_tag {
 	  uint8_t read; // field with oldest content
 	  uint8_t write; // always empty field
@@ -418,12 +354,7 @@ uint8_t OS_QueueOut(OS_Queue_t* pQueue , uint8_t* pByte)
 	return 0;
 }
 
-
-
-
-
 // *********************** Aux functions
-
 
 #if OS_USEMEMCHECKS == 1
 // give the free stack space for any task in function result.

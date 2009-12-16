@@ -18,14 +18,13 @@ OS_DeclareQueue(DemoQ,10,4);
 void CPU_init(void);
 
 
-
 // *********  THE main()
 int main(void)
 {
 	CPU_init();
 
 #if OS_DO_TESTSUITE == 1
-	OS_TestSuite(); // call automated tests of OS.
+	OS_TestSuite(); // call automated tests of OS. may be removed in production code.
 #endif
 
     OS_CreateTask(Task1, 0);
@@ -48,7 +47,7 @@ int main(void)
 void OS_CustomISRCode(void)
 {
 	// TODO add your Timer ISR here
-	TCNT1 =0;  // reset the timer on ISR
+	TCNT1 =0;  // reset the timer on ISR to have correct timing
 }
 
 
@@ -95,7 +94,7 @@ void OS_ErrorHook(uint8_t ErrNo)
 	
 	dummy = ErrNo; // dummy code
 	#if OS_DO_TESTSUITE == 1
-	asm("break");
+	asm("break"); // for automated tests of OS. may be removed in production code.
 	#endif
 }
 #endif

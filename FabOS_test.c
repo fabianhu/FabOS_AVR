@@ -4,14 +4,13 @@
 	
 	(c) 2009 Fabian Huslik
 
-	This is the file, which implememts automated software testing of the OS modules.
+	This file implememts automated software testing of the OS modules.
 	This file should only be altered if really necessary.
 	It does not contain any code, which is useful for production use of FabOS.
 
-
 remember:
 
-avr-gcc -mmcu=atmega32 -E FabOS_test.c >bla.c  invoke perprocessor
+avr-gcc -mmcu=atmega32 -E FabOS_test.c >bla.c  invoke preprocessor only
 
 
 */
@@ -319,6 +318,8 @@ void TestTask2(void)
 
 }
 
+
+// This is the coordinator task, the main beat for the tests comes from here.
 void TestTask0(void)
 {
 	uint8_t ret,i;
@@ -418,7 +419,7 @@ void TestTask0(void)
 				
 				break;
 			case 7:
-				//queue long test todo
+				//queue long test
 				ret = OS_QueueOut(&TestQLong,(uint8_t*)&ti); // Q empty
 				assert(ret == 1);
 				for (i=0;i<9;i++)
@@ -463,7 +464,7 @@ void TestTask0(void)
 		OS_WaitTicks(500); // wait for tests to be processed...
 
 		testcase++;
-		OS_SetEvent(1,1<<7);
+		OS_SetEvent(1,1<<7); // tick other tasks in sync.
 		OS_SetEvent(2,1<<7);	
 	}//while(1)
 

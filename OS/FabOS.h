@@ -1,6 +1,5 @@
 /*
 	FabOS for ATMEL AVR
-	tested on WinAVR 20090913 and Mega32
 	
 	(c) 2009 Fabian Huslik
 */

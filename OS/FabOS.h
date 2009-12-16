@@ -45,9 +45,9 @@ extern FabOS_t MyOS;
 
 // *********  Macros to simplify the API
 
-#define OS_DefineQueue(NAME,COUNT,CHUNK) uint8_t OSQD##NAME[COUNT*CHUNK]; OS_Queue_t NAME = {0,0,CHUNK,COUNT*CHUNK,OSQD##NAME}
+#define OS_DeclareQueue(NAME,COUNT,CHUNK) uint8_t OSQD##NAME[COUNT*CHUNK]; OS_Queue_t NAME = {0,0,CHUNK,COUNT*CHUNK,OSQD##NAME}
 
-#define OS_DefineTask(NAME,STACKSIZE) void NAME(void); uint8_t Stack##NAME[STACKSIZE];
+#define OS_DeclareTask(NAME,STACKSIZE) void NAME(void); uint8_t Stack##NAME[STACKSIZE];
 
 #define OS_CreateTask(NAME, PRIO)  OS_TaskCreateInt(NAME, PRIO, Stack##NAME , sizeof(Stack##NAME))
 

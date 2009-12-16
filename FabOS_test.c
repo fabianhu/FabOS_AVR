@@ -20,15 +20,15 @@ avr-gcc -mmcu=atmega32 -E FabOS_test.c >bla.c  invoke perprocessor
 
 #if OS_DO_TESTSUITE == 1 // compile only if tests are activated (OS development use only)
 
-OS_DefineTask(TestTask0,200);
-OS_DefineTask(TestTask1,200);
-OS_DefineTask(TestTask2,200);
+OS_DeclareTask(TestTask0,200);
+OS_DeclareTask(TestTask1,200);
+OS_DeclareTask(TestTask2,200);
 
 volatile uint16_t r,s,t,u;
 volatile uint8_t testvar=0;
 
-OS_DefineQueue(TestQ,64,1);
-OS_DefineQueue(TestQLong,10,4);
+OS_DeclareQueue(TestQ,64,1);
+OS_DeclareQueue(TestQLong,10,4);
 
 //OS_Queue_t TestQ ={0,0,{}};
 

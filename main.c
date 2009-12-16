@@ -8,11 +8,11 @@
 #include "OS/FabOS.h"
 
 // *********  Task definitions
-OS_DefineTask(Task1,200);
-OS_DefineTask(Task2,200);
-OS_DefineTask(Task3,200);
+OS_DeclareTask(Task1,200);
+OS_DeclareTask(Task2,200);
+OS_DeclareTask(Task3,200);
 
-OS_DefineQueue(DemoQ,10,4);
+OS_DeclareQueue(DemoQ,10,4);
 
 // *********  Prototypes
 void CPU_init(void);

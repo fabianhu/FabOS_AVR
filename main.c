@@ -38,6 +38,7 @@ int main(void)
 		// NO OS_Wait.. functions are allowed here!!!
 		
 		// TODO add your code here
+		asm("nop"); //at least one instruction is required!!!
 	}
 
 }

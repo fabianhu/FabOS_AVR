@@ -27,13 +27,15 @@ ISR  (OS_ScheduleISR) //__attribute__ ((naked,signal)) // Timer isr
 	OS_Int_saveCPUContext() ; 
 	MyOS.Stacks[MyOS.CurrTask] = SP ; // catch the SP before we (possibly) do anything with it.
 
+	OS_CustomISRCode(); // Caller of Custom ISR code to be executed inside this ISR on the last active tasks stack
+						// do early in ISR, as here a timer could be reset.
+
 #if OS_USECLOCK == 1
 	MyOS.OSTicks++; 	// tick the RT-clock...
 #endif
 	
 	OS_Int_ProcessAlarms(); // Calculate alarms; function uses stack
 
-	OS_CustomISRCode(); // Caller of Custom ISR code to be executed inside this ISR on the last active tasks stack
 
 	// task is to be run
 	MyOS.CurrTask = OS_GetNextTaskNumber() ;

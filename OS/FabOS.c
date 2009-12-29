@@ -205,13 +205,6 @@ void OS_MutexRelease(int8_t mutexID)
 
 void OS_SetEvent(uint8_t TaskID, uint8_t EventMask) // Set one or more events
 {
-#if OS_USEEXTCHECKS == 1
-	if(TaskID == OS_NUMTASKS) 
-	{
-		OS_ErrorHook(6);// OS_SetEvent: idle can not handle events
-		return ; 
-	}
-#endif
 	OS_ENTERCRITICAL;
 	MyOS.EventMask[TaskID] |= EventMask; // set the event mask, as there may be more events than waited for.
 

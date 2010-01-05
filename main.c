@@ -86,9 +86,6 @@ void OS_ErrorHook(uint8_t ErrNo)
 		case 4:
 			// OS_WaitAlarm: waiting in idle is not allowed
 			break;	
-		case 6:
-			// OS_SetEvent: idle can not handle events
-			break;	
 		default:
 			break;	
 	}

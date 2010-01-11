@@ -267,7 +267,7 @@ void OS_SetAlarm(uint8_t TaskID, uint16_t numTicks ) // set Alarm for the future
 	if(MyOS.AlarmTicks[TaskID] != 0) 
 	{
 		OS_ErrorHook(3);// OS_SetAlarm: Multiple alarm per task; task is already waiting.
-		return;  
+		// no return;  
 	}
 #endif	
 	MyOS.AlarmTicks[TaskID] = numTicks ;

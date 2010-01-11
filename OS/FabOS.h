@@ -105,7 +105,7 @@ uint8_t OS_WaitEventTimeout(uint8_t EventMask, uint16_t numTicks ); //returns 0 
 
 
 // *********  internal OS functions, not to be called by the user.
-ISR (OS_ScheduleISR)__attribute__ ((naked,signal)); // OS tick interrupt function (vector #defined above)
+ISR (OS_ScheduleISR)__attribute__ ((naked,signal)); // OS tick interrupt ISR (vector #defined in FabOS_config.h)
 
 void OS_TaskCreateInt( void (*t)(), uint8_t taskNum, uint8_t *stack, uint8_t stackSize ) ; // Create the task internal
 

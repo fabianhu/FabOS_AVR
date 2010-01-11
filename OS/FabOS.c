@@ -349,6 +349,17 @@ uint8_t OS_QueueOut(OS_Queue_t* pQueue , uint8_t* pByte)
 	return 0;
 }
 
+#if OS_USEMEMCHECKS == 1
+uint8_t OS_GetQueueSpace(OS_Queue_t* pQueue)
+{
+	if (pQueue->read < pQueue->write)
+		return pQueue->size - pQueue->write + pQueue->read;
+	else if(pQueue->read > pQueue->write)
+		return  pQueue->read - pQueue->write;
+	return pQueue->size-1;
+}
+#endif
+
 // *********************** Aux functions
 
 #if OS_USEMEMCHECKS == 1

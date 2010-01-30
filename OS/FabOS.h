@@ -214,7 +214,7 @@ asm volatile( \
 	(!defined(OS_USECOMBINED 	))||\
 	(!defined(OS_USEEXTCHECKS   ))||\
 	(!defined(OS_DO_TESTSUITE   ))
-	#error not all defines in FabOS_config.h as below!
+	#error not all defines in FabOS_config.h are done as described here below!
 #endif
 
 

@@ -264,7 +264,7 @@ void OS_SetAlarm(uint8_t TaskID, uint16_t numTicks ) // set Alarm for the future
 {
 	OS_ENTERCRITICAL;
 #if OS_USEEXTCHECKS == 1
-	if(MyOS.AlarmTicks[TaskID] != 0) 
+	if(MyOS.AlarmTicks[TaskID] != 0 && numTicks != 0) 
 	{
 		OS_ErrorHook(3);// OS_SetAlarm: Multiple alarm per task; task is already waiting.
 		// no return;  

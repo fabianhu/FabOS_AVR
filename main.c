@@ -63,6 +63,9 @@ void OS_CustomISRCode(void)
 void CPU_init(void)
 {
 	// init OS timer and interrupt
+	//Timer0 Initializations for ATMEGA16
+	//TCCR0 |= 5;  // Enable TMR0, set clock source to CLKIO/1024. Interrupts @ 32.768ms intervals @ 8 MHz. This means tasks can execute at least 130,000 instructions before being preempted.
+	//TIMSK |= 1 ; // Interrupt on TMR0 Overflow.
 #if defined (__AVR_ATmega32__)
 
 	TCCR1A = 0b00000000;
@@ -77,7 +80,7 @@ void CPU_init(void)
 	// Presc. C (32MHz) -> CPU
 	OSC.XOSCCTRL = OSC_FRQRANGE_12TO16_gc | OSC_XOSCSEL_XTAL_16KCLK_gc;
 	OSC.CTRL |= OSC_XOSCEN_bm; // enable XTAL
-	OSC.PLLCTRL = OSC_PLLSRC_XOSC_gc | 4; // configure pll x 4;
+	OSC.PLLCTRL = OSC_PLLSRC_XOSC_gc | 8; // configure pll x 8;
 	while (!(OSC.STATUS & OSC_XOSCRDY_bm))
 	{
 		asm("nop"); // wait for the bit to become set
@@ -101,7 +104,7 @@ void CPU_init(void)
 	TCC1.CTRLD = 0;
 	TCC1.CTRLE = 0;
 	TCC1.INTCTRLA = 0;
-	TCC1.INTCTRLB = TC_CCAINTLVL_HI_gc; // enable compare match A
+	TCC1.INTCTRLB = TC_CCAINTLVL_HI_gc; // enable compare match A as HIGH level interrupt. 
 	TCC1.CCA = 32000;// compare at 32000 gives 1ms clock
 
 	//Enable Interrupts in INT CTRL
@@ -110,11 +113,6 @@ void CPU_init(void)
 #else
 	#error MCU not yet supported, you must configure a timer yourself.
 #endif
-
-
-	//Timer0 Initializations for ATMEGA16
-	//TCCR0 |= 5;  // Enable TMR0, set clock source to CLKIO/1024. Interrupts @ 32.768ms intervals @ 8 MHz. This means tasks can execute at least 130,000 instructions before being preempted.
-	//TIMSK |= 1 ; // Interrupt on TMR0 Overflow.
 
 	// *** NO global interrupts enabled at this point!!!
 }

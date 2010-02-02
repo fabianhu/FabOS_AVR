@@ -50,7 +50,6 @@ extern FabOS_t MyOS;
 
 #define OS_CreateTask(NAME, PRIO)  OS_TaskCreateInt(NAME, PRIO, Stack##NAME , sizeof(Stack##NAME))
 
-
 // *********  OS function prototypes
 
 void 	OS_CustomISRCode(); // do not call; just fill in your code.

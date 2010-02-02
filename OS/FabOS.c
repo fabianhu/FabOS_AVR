@@ -41,7 +41,7 @@ ISR  (OS_ScheduleISR) //__attribute__ ((naked,signal)) // Timer isr
 	MyOS.CurrTask = OS_GetNextTaskNumber() ;
 	SP = MyOS.Stacks[MyOS.CurrTask] ;
 	OS_Int_restoreCPUContext() ;
-	asm volatile("reti"); 
+	asm volatile("reti");  // at the XMEGA the I in SREG is statically ON before and after RETI.
 }
 
 // *********  Internal scheduling and priority stuff
@@ -73,7 +73,8 @@ void OS_Reschedule(void) //with "__attribute__ ((naked))"
 
 	SP = MyOS.Stacks[MyOS.CurrTask] ;// set Stack pointer
 	OS_Int_restoreCPUContext() ;
-	asm volatile("reti"); 
+	OS_LEAVECRITICAL;
+	asm volatile("ret"); 
 }
 
 int8_t OS_GetNextTaskNumber() // which is the next task (ready and highest (= rightmost) prio)?
@@ -283,7 +284,7 @@ void OS_WaitAlarm(void) // Wait for an Alarm set by OS_SetAlarm
 		return;  
 	}
 #endif
-	OS_ENTERCRITICAL; // re-enabled by reti in OS_Schedule()
+	OS_ENTERCRITICAL; // re-enabled by OS_Schedule()
 	if(MyOS.AlarmTicks[MyOS.CurrTask] > 0) // notice: this "if" could be possibly omitted.
 	{
 		MyOS.TaskReadyBits &= ~(1<<MyOS.CurrTask) ;  // Disable this task

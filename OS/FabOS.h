@@ -1,7 +1,7 @@
 /*
 	FabOS for ATMEL AVR
 	
-	(c) 2009 Fabian Huslik
+	(c) 2008-2010 Fabian Huslik
 */
 
 #include <avr/io.h>
@@ -13,7 +13,7 @@
 typedef struct FabOS_tag
 {
 #if OS_USECLOCK == 1
-	uint32_t    OSTicks;				// the OS time, to prevent clutteded results, alway use the Function GetTime() to read it.	
+	uint32_t    OSTicks;				// the OS time, to prevent clutteded results, alway use the Function OS_GetTicks() to read it.	
 #endif
 	uint8_t		EventMask[OS_NUMTASKS] ;	// The event masks for all the tasks; Index = Task ID // no event for idle task.
 	uint8_t		EventWaiting[OS_NUMTASKS]; // The mask indicates the events, the tasks are waiting for. Index = Task ID
@@ -243,7 +243,7 @@ asm volatile( \
 #endif
 
 #if NUMTASKS >8 
-	#error only 8 tasks are possible, if you want more, you have to change some datatypes inside the FabOS_t struct typedef.
+	#error only 8 tasks are possible, if you want more, you have to change some datatypes inside the FabOS_t struct typedef and where these are used..
 #endif
 
 

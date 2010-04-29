@@ -1,7 +1,7 @@
 /*
 	FabOS for ATMEL AVR user configuration file
 	
-	(c) 2009 Fabian Huslik
+	(c) 2008-2010 Fabian Huslik
 */
 
 // *********  USER Configurable Block BEGIN

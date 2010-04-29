@@ -1,7 +1,7 @@
 /*
 	FabOS for ATMEL AVR
 	
-	(c) 2009 Fabian Huslik
+	(c) 2008-2010 Fabian Huslik
 
 	This software is free for use in private, educational or evaluation applications.
 	For commercial use a license is necessary.

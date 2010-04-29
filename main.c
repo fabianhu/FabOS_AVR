@@ -1,7 +1,7 @@
 /*
 	FabOS example implementation
 
-	(c) 2009 Fabian Huslik
+	(c) 2008-2010 Fabian Huslik
 
 */
 
@@ -27,18 +27,18 @@ int main(void)
 	OS_TestSuite(); // call automated tests of OS. may be removed in production code.
 #endif
 
-    OS_CreateTask(Task1, 0);
+    OS_CreateTask(Task1, 0); // ID 0 with higest priority
     OS_CreateTask(Task2, 1);
-    OS_CreateTask(Task3, 2);
+    OS_CreateTask(Task3, 2); // ID 2 with lowest prio, but higher than Idle
 
 	OS_StartExecution() ;
 	while(1)
 	{
-		// THIS IS the idle task which will be preemted by all other tasks.
+		// THIS IS the idle task (ID 3 in this case) which will be preemted by all other tasks.
 		// NO OS_Wait.. functions are allowed here!!!
 		
 		// TODO add your code here
-		asm("nop"); //at least one instruction is required!!!
+		asm("nop"); //at least one instruction is required for debugging!
 	}
 
 }
@@ -52,7 +52,7 @@ void OS_CustomISRCode(void)
 	TCNT1 =0;  // reset the timer on ISR to have correct timing
 
 #elif defined (__AVR_ATxmega32A4__)
-	TCC1.CNT=0;
+	TCC1.CNT=0; // reset the timer on ISR to have correct timing
 #else
 	#error MCU not yet supported, you must configure a timer yourself.
 #endif
@@ -111,7 +111,7 @@ void CPU_init(void)
 	PMIC.CTRL = PMIC_HILVLEN_bm|PMIC_MEDLVLEN_bm|PMIC_LOLVLEN_bm;
 
 #else
-	#error MCU not yet supported, you must configure a timer yourself.
+	#error MCU not yet supported, you must do the CPU init yourself.
 #endif
 
 	// *** NO global interrupts enabled at this point!!!

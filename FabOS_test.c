@@ -1,8 +1,9 @@
 /*
 	FabOS for ATMEL AVR
-	tested on WinAVR 20090913 and Mega32
+	Test suite
+	tested on WinAVR 20090913 and Mega32 / ATXMEGA32A4
 	
-	(c) 2009 Fabian Huslik
+	(c) 2008-2010 Fabian Huslik
 
 	This file implememts automated software testing of the OS modules.
 	This file should only be altered if really necessary.
@@ -33,7 +34,7 @@ OS_DeclareQueue(TestQLong,10,4);
 
 uint32_t longQtest[10] = {0x11223344, 0x22334455, 0x33445566, 0x44556677, 0x55667788, 0x66778899, 0x778899aa, 0x8899aabb, 0x99aabbcc, 0xaabbccdd};
 
-#define MAXTESTCASES 9 // one more than the max ID.
+#define MAXTESTCASES 10 // one more than the max "case" ID.
 uint8_t testcase = 0; // test case number
 uint8_t TestResults[MAXTESTCASES]; // test result array (0= OK)
 uint8_t TestProcessed[MAXTESTCASES]; // test passed array (number of processed assertions
@@ -448,7 +449,25 @@ void TestTask0(void)
 				OS_MutexRelease(0);
 				WasteOfTime(1);
 				OS_MutexRelease(1);
+				assert(1==1); // if it doesnt work, we do not come to here,
 				
+				break;
+			case 9:
+				// test of OS_GetUnusedStack (uint8_t TaskID)
+
+				t=OS_GetUnusedStack(0); // task0
+				assert(t>80 && t<150);
+
+				t=OS_GetUnusedStack(1); // task1
+				assert(t>80 && t<150);
+
+				t=OS_GetUnusedStack(2); // task2
+				assert(t>80 && t<150);
+
+				t=OS_GetUnusedStack(3); // idle
+				assert(t>2000 && t<2600);
+
+
 				break;
 			default:
 				// The END

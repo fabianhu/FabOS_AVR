@@ -8,6 +8,9 @@
 
 	contact FabOS@huslik-elektronik.de for support and license.
 
+	In this file there should be no need to change anything.
+	If you have to change something, please let the author know via FabOS@huslik-elektronik.de.
+
 */
 
 #include "FabOS.h"

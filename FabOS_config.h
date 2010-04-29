@@ -1,7 +1,9 @@
 /*
-	FabOS for ATMEL AVR user configuration file
-	
+	FabOS user configuration file
+
 	(c) 2008-2010 Fabian Huslik
+
+	Please change this file to your needs.
 */
 
 // *********  USER Configurable Block BEGIN
@@ -25,4 +27,4 @@
 
 // *********  USER Configurable Block END 
 
-#define OS_DO_TESTSUITE 0	// compile and execute the automated software tests. set to 0 for production use of OS.
+#define OS_DO_TESTSUITE 0	// compile and execute the automated software tests. Set to 0 for production use of OS.

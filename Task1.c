@@ -1,3 +1,11 @@
+/*
+	FabOS example File
+
+	(c) 2008-2010 Fabian Huslik
+
+	Please change this file to your needs.
+*/
+
 #include "OS/FabOS.h"
 
 // *********  User Task 0

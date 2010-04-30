@@ -405,6 +405,9 @@ void TestTask0(void)
 				ret = OS_QueueIn(&TestQ,&i);
 				assert(ret==1);
 
+				t = OS_GetQueueSpace(&TestQ);
+				assert(t==0);
+
 				break;
 			case 5:
 				// SetAlarm

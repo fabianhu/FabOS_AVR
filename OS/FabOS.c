@@ -57,7 +57,8 @@ void OS_Int_ProcessAlarms(void)
 	{ 
 		if( MyOS.AlarmTicks[taskID] > 0 ) // this task has to wait
 		{
-			if( --MyOS.AlarmTicks[taskID] == 0 ) // if now task is ready, it will be activated.
+			MyOS.AlarmTicks[taskID]--;
+			if( MyOS.AlarmTicks[taskID] == 0 ) // if now task is ready, it will be activated.
 			{
 				MyOS.TaskReadyBits |= 1<<(taskID) ; // now it is finished with waiting
 			}
@@ -128,7 +129,7 @@ void OS_TaskCreateInt( void (*t)(), uint8_t TaskID, uint8_t *stack, uint8_t stac
 	// "colorize" the stacks
 	for (z=0;z<stackSize;z++)
 	{
-		stack[z] = OS_UNUSEDMASK;
+		stack[z] = OS_UNUSEDMASK+TaskID;
 	}
 
 	MyOS.StackStart[TaskID]=stack;
@@ -169,7 +170,7 @@ void OS_StartExecution()
 	// "colorize" the stacks
 	while (stack > MyOS.StackStart[OS_NUMTASKS])
 	{
-		*--stack = OS_UNUSEDMASK;
+		*--stack = OS_UNUSEDMASK+OS_NUMTASKS;
 	}
 #endif
 
@@ -217,10 +218,8 @@ void OS_SetEvent(uint8_t TaskID, uint8_t EventMask) // Set one or more events
 		// wake up this task directly
 		MyOS.TaskReadyBits |= 1<<TaskID ;   // Make the task ready to run again.
 
-		MyOS.EventWaiting[TaskID] = 0; // no more waiting!
-		// clear the events:
-		MyOS.EventMask[TaskID] &= ~EventMask; // the actual events minus the ones, which have been waited for 
-
+		// the waiting task cleans up the events, as soon as activated.
+		
 		OS_Reschedule() ; // re-schedule; will wake up the sleeper directly, if higher prio.
 	}
 	else
@@ -359,8 +358,8 @@ uint8_t OS_GetQueueSpace(OS_Queue_t* pQueue)
 	if (pQueue->read < pQueue->write)
 		return pQueue->size - pQueue->write + pQueue->read;
 	else if(pQueue->read > pQueue->write)
-		return  pQueue->read - pQueue->write;
-	return pQueue->size-1;
+		return  (pQueue->read - pQueue->write)-1;
+	return pQueue->size - 1;
 }
 #endif
 
@@ -375,7 +374,7 @@ uint16_t OS_GetUnusedStack (uint8_t TaskID)
 
    do
    {
-      if (*p++ != OS_UNUSEDMASK)
+      if (*p++ != OS_UNUSEDMASK+TaskID)
          break;
 
       unused++;
@@ -402,10 +401,10 @@ uint8_t OS_WaitEventTimeout(uint8_t EventMask, uint16_t numTicks ) //returns eve
 	uint8_t ret;
 	OS_SetAlarm(MyOS.CurrTask,numTicks); // set timeout
 	ret = OS_WaitEvent(EventMask);
-	if(ret | EventMask)
+	if(ret & EventMask)
 	{
 		// event occured
-		OS_SetAlarm(1,0); // disable timeout
+		OS_SetAlarm(MyOS.CurrTask,0); // disable timeout
 		return ret;
 	}
 	else

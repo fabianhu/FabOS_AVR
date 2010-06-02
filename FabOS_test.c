@@ -396,17 +396,24 @@ void TestTask0(void)
 				}
 				OS_SetEvent(1,1<<6);
 				OS_WaitTicks(50);
+				
+				// check, if q is empty
+				t = OS_GetQueueSpace(&TestQ);
+				assert(t==63);	
+								
 				for (i=0;i<63;i++) // overload the Q (only 63 of 64 usable for indication full/empty)
 				{
 					ret = OS_QueueIn(&TestQ,&i);
 					assert(ret==0);
 				}
+				
+				// check, if none left
+				t = OS_GetQueueSpace(&TestQ);
+				assert(t==0);				
+				
 				// now one too much:
 				ret = OS_QueueIn(&TestQ,&i);
 				assert(ret==1);
-
-				t = OS_GetQueueSpace(&TestQ);
-				assert(t==0);
 
 				break;
 			case 5:

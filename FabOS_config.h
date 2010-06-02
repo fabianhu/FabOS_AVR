@@ -27,4 +27,4 @@
 
 // *********  USER Configurable Block END 
 
-#define OS_DO_TESTSUITE 0	// compile and execute the automated software tests. Set to 0 for production use of OS.
+#define OS_DO_TESTSUITE 1	// compile and execute the automated software tests. Set to 0 for production use of OS.

@@ -88,6 +88,7 @@ uint8_t OS_QueueOut(OS_Queue_t* pQueue, uint8_t *pData); // Get a byte out of th
 
 #if OS_USEMEMCHECKS == 1
 uint16_t OS_GetUnusedStack (uint8_t TaskID); // give the free stack space for any task as result.
+uint8_t OS_GetQueueSpace(OS_Queue_t* pQueue); // give the free space in a queue
 #endif
 
 #if OS_USECLOCK == 1
@@ -102,7 +103,7 @@ void 	OS_TestSuite(void); // execute test of FabOS (use only, if changed some in
 // Wait for a certain number of OS-ticks (1 = wait to the next timer interrupt)
 
 #if OS_USECOMBINED == 1
-uint8_t OS_WaitEventTimeout(uint8_t EventMask, uint16_t numTicks ); //returns 0 on event, 1 on timeout.
+uint8_t OS_WaitEventTimeout(uint8_t EventMask, uint16_t numTicks ); //returns event on event, 0 on timeout.
 #endif
 
 #define OS_WaitTicks(X) do{\
@@ -126,8 +127,8 @@ void OS_Int_ProcessAlarms(void);
 
 // *********  CPU related assembler stuff
 
-#define OS_ENTERCRITICAL cli()
-#define OS_LEAVECRITICAL sei()
+#define OS_ENTERCRITICAL cli();
+#define OS_LEAVECRITICAL sei();
 
 
 // Save all CPU registers on the AVR chip.

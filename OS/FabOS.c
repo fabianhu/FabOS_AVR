@@ -215,6 +215,13 @@ void OS_StartExecution()
 // Try to get a mutex; execution will block as long the mutex is occupied. If it is free, it is occupied afterwards.
 void OS_MutexGet(int8_t mutexID)
 {
+#if OS_USEEXTCHECKS == 1
+	if(mutexID >= OS_NUMMUTEX)
+	{
+		OS_ErrorHook(5);// OS_MutexGet: invalid Mutex number
+		return;
+	}
+#endif
 	OS_ENTERCRITICAL;
 	OS_TRACE(17);
 	while( MyOS.MutexOwnedByTask[mutexID] != 0xff) // as long as anyone is the owner..
@@ -235,9 +242,16 @@ void OS_MutexGet(int8_t mutexID)
 // release the occupied mutex
 void OS_MutexRelease(int8_t mutexID)
 {
+#if OS_USEEXTCHECKS == 1
+	if(mutexID >= OS_NUMMUTEX)
+	{
+		OS_ErrorHook(6);// OS_MutexRelease: invalid Mutex number
+		return;
+	}
+#endif
 	OS_ENTERCRITICAL;
-	MyOS.MutexOwnedByTask[mutexID] = 0xff; // tell others, that no one is the owner.
 	OS_TRACE(21);
+	MyOS.MutexOwnedByTask[mutexID] = 0xff; // tell others, that no one is the owner.
 	OS_Reschedule() ; // re-schedule; will wake up waiting task, if higher prio.
 }
 

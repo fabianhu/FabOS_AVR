@@ -134,12 +134,19 @@ void OS_ErrorHook(uint8_t ErrNo)
 			break;	
 		case 4:
 			// OS_WaitAlarm: waiting in idle is not allowed
-			break;	
+			break;
+		case 5:
+			// OS_MutexGet: invalid Mutex number
+			break;
+		case 6:
+			// OS_MutexRelease: invalid Mutex number
+			break;
 		default:
 			break;	
 	}
 	
 	dummy = ErrNo; // dummy code
+
 	#if OS_DO_TESTSUITE == 1
 	asm("break"); // for automated tests of OS. may be removed in production code.
 	#endif

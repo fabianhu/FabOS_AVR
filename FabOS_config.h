@@ -1,6 +1,6 @@
 /*
-	FabOS user configuration file
-
+	FabOS for ATMEL AVR user configuration file
+	
 	(c) 2008-2010 Fabian Huslik
 
 	Please change this file to your needs.
@@ -22,7 +22,24 @@
 #define OS_USEEXTCHECKS 1	// prevent false use of API -> does not work, but no damage to OS stability.
 #define OS_USEMEMCHECKS 1 	// Enable "OS_get_unused_Stack()" and "OS_GetQueueSpace()"
 #define OS_UNUSEDMASK 0xEE  // unused Stack RAM will be filled with this byte, if OS_USEMEMCHECKS == 1.
+#define OS_TRACE_ON  1 		// enable trace to OS_Tracebuffer[]
+#define OS_TRACESIZE 1000	// size of OS_Tracebuffer[] (depending on memory left ;-)
 
+// Task definitions
+
+#define OSTSK0 0
+#define OSTSK1 1
+#define OSTSK2 2
+#define OSTSK3 3
+
+// Event Names
+
+#define OSEVT1 1
+
+// Mutex Names
+
+#define OSMTX0 0
+#define OSMTX1 1
 
 
 // *********  USER Configurable Block END 

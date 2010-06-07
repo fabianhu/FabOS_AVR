@@ -59,6 +59,14 @@ extern FabOS_t MyOS;
 
 #define OS_CreateTask(NAME, PRIO)  OS_TaskCreateInt(NAME, PRIO, Stack##NAME , sizeof(Stack##NAME))
 
+#if OS_TRACE_ON == 1
+	#define OS_TRACE(X)\
+				OS_Tracebuffer[OS_TraceIdx++] = X ; \
+				if(OS_TraceIdx >= sizeof(OS_Tracebuffer)) OS_TraceIdx = 0;
+#else
+	#define OS_TRACE(X) ;
+#endif
+
 // *********  OS function prototypes
 
 void 	OS_CustomISRCode(); // do not call; just fill in your code.

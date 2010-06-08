@@ -17,8 +17,12 @@
 #include <avr/interrupt.h>
 #include "../FabOS_config.h"
 
-// *********  the OS data struct
+typedef struct OS_Alarm_tag {
+	uint8_t 	TaskID; // Task to wake up
+	uint16_t 	AlarmTicks;
+} OS_Alarm_t;
 
+// *********  the OS data struct
 typedef struct FabOS_tag
 {
 #if OS_USECLOCK == 1
@@ -33,7 +37,9 @@ typedef struct FabOS_tag
 	uint8_t 	CurrTask; 				// here the NUMBER of the actual active task is set.
 	uint8_t 	TaskReadyBits ; 		// here te task activation BITS are set. Task 0 (LSB) has the highest priority.
 	uint16_t 	Stacks[OS_NUMTASKS+1];		// actual SP position addresses for the tasks AND the IDLE-task, which uses the ordinary stack! Index = Task ID
-	uint16_t 	AlarmTicks[OS_NUMTASKS];  	// Holds the number of system clock ticks to wait before the task becomes ready to run. Index = Task ID
+	//uint16_t 	AlarmTicks[OS_NUMTASKS];  	// Holds the number of system clock ticks to wait before the task becomes ready to run. Index = Task ID
+	OS_Alarm_t	Alarms[OS_NUMALARMS];
+
 #if OS_USEMEMCHECKS == 1
 	uint8_t*     StackStart[OS_NUMTASKS+1];
 #endif
@@ -59,6 +65,8 @@ extern FabOS_t MyOS;
 
 #define OS_CreateTask(NAME, PRIO)  OS_TaskCreateInt(NAME, PRIO, Stack##NAME , sizeof(Stack##NAME))
 
+#define OS_CreateAlarm(ALARMID, TASKID) MyOS.Alarms[ALARMID].TaskID = TASKID; MyOS.Alarms[ALARMID].AlarmTicks = 0;
+
 #if OS_TRACE_ON == 1
 	#define OS_TRACE(X)\
 				OS_Tracebuffer[OS_TraceIdx++] = X ; \
@@ -82,9 +90,9 @@ void 	OS_MutexGet(int8_t mutexID); // number of mutexes limited to NUMMUTEX !!!
 
 void 	OS_MutexRelease(int8_t mutexID); // release the occupied mutex
 
-void 	OS_SetAlarm(uint8_t TaskID, uint16_t numTicks ); // set Alarm for the future and continue // set alarm to 0 disable it.
+void 	OS_SetAlarm(uint8_t AlarmID, uint16_t numTicks ); // set Alarm for the future and continue // set alarm to 0 disable it.
 
-void 	OS_WaitAlarm(void); // Wait for an Alarm set by OS_SetAlarm 
+void 	OS_WaitAlarm(uint8_t AlarmID); // Wait for an Alarm set by OS_SetAlarm
 
 uint8_t OS_QueueIn(OS_Queue_t* pQueue , uint8_t *pData); // Put byte into queue, return 1 if q full.
 
@@ -111,12 +119,12 @@ void 	OS_TestSuite(void); // execute test of FabOS (use only, if changed some in
 // Wait for a certain number of OS-ticks (1 = wait to the next timer interrupt)
 
 #if OS_USECOMBINED == 1
-uint8_t OS_WaitEventTimeout(uint8_t EventMask, uint16_t numTicks ); //returns event on event, 0 on timeout.
+uint8_t OS_WaitEventTimeout(uint8_t EventMask, uint8_t AlarmID, uint16_t numTicks ); //returns event on event, 0 on timeout.
 #endif
 
-#define OS_WaitTicks(X) do{\
-		OS_SetAlarm(MyOS.CurrTask,X);\
-		OS_WaitAlarm();\
+#define OS_WaitTicks(A,X) do{\
+		OS_SetAlarm(A,X);\
+		OS_WaitAlarm(A);\
 		}while(0)
 
 
@@ -268,6 +276,7 @@ asm volatile( \
 #if (OS_DO_TESTSUITE == 1) && (\
 		(	OS_NUMTASKS 	!=3	) ||\
 		(	OS_NUMMUTEX 	!=3	) ||\
+		(	OS_USEEXTCHECKS !=1 ) ||\
 		(	OS_USECLOCK 	!=1	) ||\
 		(	OS_USEMEMCHECKS !=1	) ||\
 		(	OS_USECOMBINED 	!=1	) \

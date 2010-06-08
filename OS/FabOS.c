@@ -62,20 +62,20 @@ ISR  (OS_ScheduleISR) //__attribute__ ((naked,signal)) // Timer isr
 
 void OS_Int_ProcessAlarms(void)
 {
-	uint8_t taskID;
+	uint8_t alarmID;
 	OS_TRACE(4);
 
 	// handling of OS_Wait / Alarms
-	for(taskID=0; taskID < OS_NUMTASKS; taskID++ ) 
+	for(alarmID=0; alarmID < OS_NUMALARMS; alarmID++ )
 	{ 
-		if( MyOS.AlarmTicks[taskID] > 0 ) // this task has to wait
+		if( MyOS.Alarms[alarmID].AlarmTicks > 0 ) // this task has to wait
 		{
 			OS_TRACE(5);
-			MyOS.AlarmTicks[taskID]--;
-			if( MyOS.AlarmTicks[taskID] == 0 ) // if now task is ready, it will be activated.
+			MyOS.Alarms[alarmID].AlarmTicks--;
+			if( MyOS.Alarms[alarmID].AlarmTicks == 0 ) // if now task is ready, it will be activated.
 			{
 				OS_TRACE(6);
-				MyOS.TaskReadyBits |= 1<<(taskID) ; // now it is finished with waiting
+				MyOS.TaskReadyBits |= 1<<(MyOS.Alarms[alarmID].TaskID) ; // now it is finished with waiting
 			}
 		}
 	}
@@ -321,24 +321,29 @@ uint8_t OS_WaitEvent(uint8_t EventMask) //returns event(s), which lead to execut
 
 // ************************** ALARMS
 
-void OS_SetAlarm(uint8_t TaskID, uint16_t numTicks ) // set Alarm for the future and continue // set alarm to 0 disable an alarm.
+void OS_SetAlarm(uint8_t AlarmID, uint16_t numTicks ) // set Alarm for the future and continue // set alarm to 0 disable an alarm.
 {
 	OS_ENTERCRITICAL;
 	OS_TRACE(29);
 #if OS_USEEXTCHECKS == 1
-	if(MyOS.AlarmTicks[TaskID] != 0 && numTicks != 0) 
+	if(AlarmID >= OS_NUMALARMS)// check for ID out of range
 	{
-		OS_ErrorHook(3);// OS_SetAlarm: Multiple alarm per task; task is already waiting.
-		// no return;  
+		OS_ErrorHook(7); // ID bigger than array size
+		return;
 	}
 #endif	
-	MyOS.AlarmTicks[TaskID] = numTicks ;
+	MyOS.Alarms[AlarmID].AlarmTicks = numTicks ;
 	OS_LEAVECRITICAL;
 }
 
-void OS_WaitAlarm(void) // Wait for an Alarm set by OS_SetAlarm 
+void OS_WaitAlarm(uint8_t AlarmID) // Wait for any Alarm set by OS_SetAlarm
 {
 #if OS_USEEXTCHECKS == 1
+	if(AlarmID >= OS_NUMALARMS)// check for ID out of range
+	{
+		OS_ErrorHook(7); // ID bigger than array size
+		return;
+	}
 	if(MyOS.CurrTask == OS_NUMTASKS) 
 	{
 		OS_ErrorHook(4);// OS_WaitAlarm: waiting in idle is not allowed
@@ -347,7 +352,7 @@ void OS_WaitAlarm(void) // Wait for an Alarm set by OS_SetAlarm
 #endif
 	OS_ENTERCRITICAL; // re-enabled by OS_Schedule()
 	OS_TRACE(30);
-	if(MyOS.AlarmTicks[MyOS.CurrTask] > 0) // notice: this "if" could be possibly omitted.
+	if(MyOS.Alarms[AlarmID].AlarmTicks > 0 && MyOS.Alarms[AlarmID].TaskID == MyOS.CurrTask) // notice: this "if" could be possibly omitted.
 	{
 		OS_TRACE(31);
 		MyOS.TaskReadyBits &= ~(1<<MyOS.CurrTask) ;  // Disable this task
@@ -357,6 +362,7 @@ void OS_WaitAlarm(void) // Wait for an Alarm set by OS_SetAlarm
 	{
 		OS_TRACE(32);
 		OS_LEAVECRITICAL; // just continue
+		OS_ErrorHook(8); // OS_WaitAlarm: Alarm was not active
 	}
 }
 
@@ -463,15 +469,15 @@ void OS_GetTicks(uint32_t* pTime)
 
 
 #if OS_USECOMBINED
-uint8_t OS_WaitEventTimeout(uint8_t EventMask, uint16_t numTicks ) //returns event on event, 0 on timeout.
+uint8_t OS_WaitEventTimeout(uint8_t EventMask, uint8_t AlarmID, uint16_t numTicks ) //returns event on event, 0 on timeout.
 {
 	uint8_t ret;
-	OS_SetAlarm(MyOS.CurrTask,numTicks); // set timeout
+	OS_SetAlarm(AlarmID,numTicks); // set timeout
 	ret = OS_WaitEvent(EventMask);
 	if(ret & EventMask)
 	{
 		// event occured
-		OS_SetAlarm(MyOS.CurrTask,0); // disable timeout
+		OS_SetAlarm(AlarmID,0); // disable timeout
 		return ret;
 	}
 	else

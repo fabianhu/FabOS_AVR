@@ -34,7 +34,7 @@ OS_DeclareQueue(TestQLong,10,4);
 
 uint32_t longQtest[10] = {0x11223344, 0x22334455, 0x33445566, 0x44556677, 0x55667788, 0x66778899, 0x778899aa, 0x8899aabb, 0x99aabbcc, 0xaabbccdd};
 
-#define MAXTESTCASES 10 // one more than the max "case" ID.
+#define MAXTESTCASES 12 // one more than the max "case" ID.
 uint8_t testcase = 0; // test case number
 uint8_t TestResults[MAXTESTCASES]; // test result array (0= OK)
 uint8_t TestProcessed[MAXTESTCASES]; // test passed array (number of processed assertions
@@ -51,6 +51,13 @@ uint8_t TestProcessed[MAXTESTCASES]; // test passed array (number of processed a
 
 void WasteOfTime(uint32_t waittime);
 
+
+#define OSALMTest0 0
+#define OSALMTest1 1
+#define OSALMTest2 2
+#define OSALMTest3 3
+
+
 void OS_TestSuite(void)
 {
 
@@ -60,6 +67,11 @@ void OS_TestSuite(void)
     OS_CreateTask(TestTask0, 0);
     OS_CreateTask(TestTask1, 1);
     OS_CreateTask(TestTask2, 2);
+
+    OS_CreateAlarm(OSALMTest0,0);
+    OS_CreateAlarm(OSALMTest1,1);
+    OS_CreateAlarm(OSALMTest2,2);
+    OS_CreateAlarm(OSALMTest3,0); // testcase 10
 
 	OS_StartExecution() ;
 	while(1)
@@ -112,10 +124,10 @@ void TestTask1(void)
 				testvar++;
 				break;
 			case 1:
-				OS_WaitTicks(1);
+				OS_WaitTicks(OSALMTest1, 1);
 				// Timer / Wait
 				OS_GetTicks(&ti); // get time
-				OS_WaitTicks(t);
+				OS_WaitTicks(OSALMTest1, t);
 				OS_GetTicks(&tj); // get time
 				assert(tj-ti == t); // waited time was correct
 									
@@ -154,13 +166,13 @@ void TestTask1(void)
 				OS_MutexGet(0);
 				WasteOfTime(50);
 				testvar = 1;
-				OS_WaitTicks(50);
+				OS_WaitTicks(OSALMTest1, 50);
 				assert(testvar == 1);
 				OS_MutexRelease(0);
 
 				OS_WaitEvent(1<<1);
 				// 2:mutex is occupied by lower prio
-				OS_WaitTicks(50);
+				OS_WaitTicks(OSALMTest1, 50);
 				OS_MutexGet(0);
 				testvar = 3;
 				WasteOfTime(50);
@@ -197,27 +209,27 @@ void TestTask1(void)
 				}
 				// Q empty
 				ret = OS_QueueOut(&TestQ,&v);
-				//assert(v==i);
+				
 				assert(ret ==1);
-				OS_WaitEvent(1<<6);
+				//OS_WaitEvent(1<<6);
 
 				break;
 			case 5:
 				// SetAlarm
 				// WaitAlarm
 				OS_GetTicks(&ts);
-				OS_WaitAlarm();
+				OS_WaitAlarm(OSALMTest1);
 				OS_GetTicks(&te);
 				assert(te-ts == 53);
 				break;
 			case 6:
 				// Event with timeout
-				ret = OS_WaitEventTimeout(1<<3,30);
+				ret = OS_WaitEventTimeout(1<<3,OSALMTest1, 30);
 				assert(ret == 1<<3); // no timeout, it was the event.
 
 
 				OS_GetTicks(&ti); // get time
-				ret = OS_WaitEventTimeout(1<<3,t); // wait for the event, which never comes...
+				ret = OS_WaitEventTimeout(1<<3,OSALMTest1, t); // wait for the event, which never comes...
 				assert(ret == 0); // timeout recoginzed
 				OS_GetTicks(&tj); // get time
 				assert(tj-ti == t); // waited time was correct
@@ -253,11 +265,11 @@ void TestTask2(void)
 				break;
 			case 1:
 				// Timer / Wait
-				OS_WaitTicks(2);
+				OS_WaitTicks(OSALMTest2, 2);
 				
 				t=50;
 				OS_GetTicks(&i); // get time
-				OS_WaitTicks(t);
+				OS_WaitTicks(OSALMTest2, t);
 				OS_GetTicks(&j); // get time
 				assert(j-i == t); // waited time was correct
 				break;
@@ -296,7 +308,7 @@ void TestTask2(void)
 				// SetAlarm
 				// WaitAlarm
 				OS_GetTicks(&ts);
-				OS_WaitAlarm();
+				OS_WaitAlarm(OSALMTest2);
 				OS_GetTicks(&te);
 				assert(te-ts == 44);
 
@@ -338,11 +350,11 @@ void TestTask0(void)
 				break;
 			case 1:
 				// Timer / Wait
-				OS_WaitTicks(3);
+				OS_WaitTicks(OSALMTest0, 3);
 
 				t=10;
 				OS_GetTicks(&ti); // get time
-				OS_WaitTicks(t);
+				OS_WaitTicks(OSALMTest0, t);
 				OS_GetTicks(&tj); // get time
 				assert(tj-ti == t); // waited time was correct
 				break;
@@ -351,25 +363,25 @@ void TestTask0(void)
 				// SetEvent
 // wait for A, then A occurs
 				testvar =0;
-				OS_WaitTicks(10);
+				OS_WaitTicks(OSALMTest0, 10);
 				assert(testvar==1);
 				OS_SetEvent(1,1<<0);
-				OS_WaitTicks(2);
+				OS_WaitTicks(OSALMTest0, 2);
 				assert(testvar==2);
 // A occurs, then wait for A
 				testvar =3;
 				OS_SetEvent(1,1<<0);
 				assert(testvar==3);
-				OS_WaitTicks(100); // other task wastes time...
+				OS_WaitTicks(OSALMTest0, 100); // other task wastes time...
 				assert(testvar==4);
 // wait for more events, one occurs, then the other
 				OS_SetEvent(1,1<<2);
 				assert(testvar==4);
-				OS_WaitTicks(10);
+				OS_WaitTicks(OSALMTest0, 10);
 				assert(testvar==6);
 				OS_SetEvent(1,1<<1);
 				assert(testvar==6);
-				OS_WaitTicks(10);
+				OS_WaitTicks(OSALMTest0, 10);
 				assert(testvar==8);
 
 				break;
@@ -381,21 +393,21 @@ void TestTask0(void)
 			case 4:
 				// QueueIn
 				// QueueOut
-				OS_WaitTicks(50);
+				OS_WaitTicks(OSALMTest0, 50);
 				for (i=0;i<20;i++) // forward
 				{
 					ret = OS_QueueIn(&TestQ,&i);
 					assert(ret==0);
 				}
 				OS_SetEvent(1,1<<6);
-				OS_WaitTicks(50);
+				OS_WaitTicks(OSALMTest0, 50);
 				for (i=20;i>0;i--) // backward
 				{
 					ret = OS_QueueIn(&TestQ,&i);
 					assert(ret==0);
 				}
 				OS_SetEvent(1,1<<6);
-				OS_WaitTicks(50);
+				OS_WaitTicks(OSALMTest0, 50);
 				
 				// check, if q is empty
 				t = OS_GetQueueSpace(&TestQ);
@@ -419,13 +431,13 @@ void TestTask0(void)
 			case 5:
 				// SetAlarm
 				// WaitAlarm
-				OS_SetAlarm(1,53);
-				OS_SetAlarm(2,44);
+				OS_SetAlarm(OSALMTest1,53);
+				OS_SetAlarm(OSALMTest2,44);
 				break;
 			case 6:
 				// Event with timeout
 				OS_SetEvent(1,1<<3);
-				OS_WaitTicks(50);
+				OS_WaitTicks(OSALMTest0, 50);
 				// do not set the second one...
 				
 				break;
@@ -479,6 +491,22 @@ void TestTask0(void)
 
 
 				break;
+			case 10:
+				OS_GetTicks(&ti);
+				OS_SetAlarm(OSALMTest0,39);
+				OS_SetAlarm(OSALMTest3,64);
+				OS_WaitAlarm(OSALMTest0);
+				OS_GetTicks(&tj);
+				assert(ti-tj == 39);
+				OS_WaitAlarm(OSALMTest3);
+				OS_GetTicks(&tj);
+				assert(ti-tj == 64);
+
+				break;
+			case 11:
+				assert(0); // just for proofing that it works!
+
+				break;
 			default:
 				// The END
 				while(1)
@@ -490,7 +518,7 @@ void TestTask0(void)
 				break;
 		}
 
-		OS_WaitTicks(500); // wait for tests to be processed...
+		OS_WaitTicks(OSALMTest0, 500); // wait for tests to be processed...
 
 		testcase++;
 		OS_SetEvent(1,1<<7); // tick other tasks in sync.

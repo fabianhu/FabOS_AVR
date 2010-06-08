@@ -12,12 +12,12 @@
 void Task3() 
 {
 
-	OS_SetAlarm(2,100);
+	OS_SetAlarm(OSALM3,100);
 
 	while(1)
 	{
-		OS_WaitAlarm();
-		OS_SetAlarm(2,100);
+		OS_WaitAlarm(OSALM3);
+		OS_SetAlarm(OSALM3,100);
 		
 		// TODO add your code here
 

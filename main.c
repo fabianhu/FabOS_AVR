@@ -32,6 +32,11 @@ int main(void)
     OS_CreateTask(Task2, 1);
     OS_CreateTask(Task3, 2); // ID 2 with lowest prio, but higher than Idle
 
+	OS_CreateAlarm(0, OSALM1);
+	OS_CreateAlarm(1, OSALM2);
+	OS_CreateAlarm(2, OSALM3);
+
+
 	OS_StartExecution() ;
 	while(1)
 	{
@@ -129,9 +134,6 @@ void OS_ErrorHook(uint8_t ErrNo)
 		case 2:
 			// OS_WaitEvent: waiting in idle is not allowed
 			break;	
-		case 3:
-			// OS_SetAlarm: Multiple alarm per task
-			break;	
 		case 4:
 			// OS_WaitAlarm: waiting in idle is not allowed
 			break;
@@ -140,6 +142,12 @@ void OS_ErrorHook(uint8_t ErrNo)
 			break;
 		case 6:
 			// OS_MutexRelease: invalid Mutex number
+			break;
+		case 7:
+			// OS_Alarm misconfiguration
+			break;
+		case 8:
+			// OS_WaitAlarm: Alarm was not active
 			break;
 		default:
 			break;	

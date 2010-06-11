@@ -37,8 +37,7 @@ typedef struct FabOS_tag
 	uint8_t 	CurrTask; 				// here the NUMBER of the actual active task is set.
 	uint8_t 	TaskReadyBits ; 		// here te task activation BITS are set. Task 0 (LSB) has the highest priority.
 	uint16_t 	Stacks[OS_NUMTASKS+1];		// actual SP position addresses for the tasks AND the IDLE-task, which uses the ordinary stack! Index = Task ID
-	//uint16_t 	AlarmTicks[OS_NUMTASKS];  	// Holds the number of system clock ticks to wait before the task becomes ready to run. Index = Task ID
-	OS_Alarm_t	Alarms[OS_NUMALARMS];
+	OS_Alarm_t	Alarms[OS_NUMALARMS];  // Holds the number of system clock ticks to wait before the task becomes ready to run.
 
 #if OS_USEMEMCHECKS == 1
 	uint8_t*     StackStart[OS_NUMTASKS+1];

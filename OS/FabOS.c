@@ -269,9 +269,7 @@ void OS_SetEvent(uint8_t TaskID, uint8_t EventMask) // Set one or more events
 		// wake up this task directly
 		MyOS.TaskReadyBits |= 1<<TaskID ;   // Make the task ready to run again.
 
-		//MyOS.EventWaiting[TaskID] = 0; // no more waiting!
-		// clear the events:
-		//MyOS.EventMask[TaskID] &= ~EventMask; // the actual events minus the ones, which have been waited for 
+		// the waked up task will then clean up all entries to the event
 
 		OS_Reschedule() ; // re-schedule; will wake up the sleeper directly, if higher prio.
 	}
@@ -349,20 +347,31 @@ void OS_WaitAlarm(uint8_t AlarmID) // Wait for any Alarm set by OS_SetAlarm
 		OS_ErrorHook(4);// OS_WaitAlarm: waiting in idle is not allowed
 		return;  
 	}
+	if(MyOS.Alarms[AlarmID].AlarmTicks == 0 ) // notice: this "if" could be possibly omitted. fixme
+	{
+		OS_ErrorHook(8); // OS_WaitAlarm: Alarm was not active
+		return;  
+	}
+
 #endif
 	OS_ENTERCRITICAL; // re-enabled by OS_Schedule()
 	OS_TRACE(30);
-	if(MyOS.Alarms[AlarmID].AlarmTicks > 0 && MyOS.Alarms[AlarmID].TaskID == MyOS.CurrTask) // notice: this "if" could be possibly omitted.
-	{
-		OS_TRACE(31);
-		MyOS.TaskReadyBits &= ~(1<<MyOS.CurrTask) ;  // Disable this task
-		OS_Reschedule();  // re-schedule; let the others run...
-	}
-	else
+	if(MyOS.Alarms[AlarmID].TaskID != MyOS.CurrTask) // Alarm is not assigned!
 	{
 		OS_TRACE(32);
 		OS_LEAVECRITICAL; // just continue
-		OS_ErrorHook(8); // OS_WaitAlarm: Alarm was not active
+#if OS_USEEXTCHECKS == 1
+		OS_ErrorHook(9); // OS_WaitAlarm: Alarm is not assigned to the task
+#endif
+		return;  
+	}
+	else
+	{
+		OS_TRACE(33);
+		MyOS.TaskReadyBits &= ~(1<<MyOS.CurrTask) ;  // Disable this task
+		OS_Reschedule();  // re-schedule; let the others run...	
+
+		
 	}
 }
 

@@ -149,6 +149,9 @@ void OS_ErrorHook(uint8_t ErrNo)
 		case 8:
 			// OS_WaitAlarm: Alarm was not active
 			break;
+		case 9:
+			// OS_WaitAlarm: Alarm is not assigned to the task (critical!)
+			break;
 		default:
 			break;	
 	}

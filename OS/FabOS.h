@@ -58,11 +58,11 @@ extern FabOS_t MyOS;
 
 // *********  Macros to simplify the API
 
-#define OS_DeclareQueue(NAME,COUNT,CHUNK) uint8_t OSQD##NAME[COUNT*CHUNK]; OS_Queue_t NAME = {0,0,CHUNK,COUNT*CHUNK,OSQD##NAME}
+#define OS_DeclareQueue(NAME,COUNT,CHUNK) uint8_t OSQD##NAME[(COUNT+1)*CHUNK]; OS_Queue_t NAME = {0,0,CHUNK,(COUNT+1)*CHUNK,OSQD##NAME}
 
-#define OS_DeclareTask(NAME,STACKSIZE) void NAME(void); uint8_t Stack##NAME[STACKSIZE];
+#define OS_DeclareTask(NAME,STACKSIZE) void NAME(void); uint8_t OSStack##NAME[STACKSIZE];
 
-#define OS_CreateTask(NAME, PRIO)  OS_TaskCreateInt(NAME, PRIO, Stack##NAME , sizeof(Stack##NAME))
+#define OS_CreateTask(NAME, PRIO)  OS_TaskCreateInt(NAME, PRIO, OSStack##NAME , sizeof(OSStack##NAME))
 
 #define OS_CreateAlarm(ALARMID, TASKID) MyOS.Alarms[ALARMID].TaskID = TASKID; MyOS.Alarms[ALARMID].AlarmTicks = 0;
 
@@ -231,34 +231,34 @@ asm volatile( \
 
 #if (!defined(OS_NUMTASKS		))||\
 	(!defined(OS_NUMMUTEX 		))||\
+	(!defined(OS_NUMALARMS		))||\
 	(!defined(OS_ScheduleISR 	))||\
 	(!defined(OS_USECLOCK 		))||\
-	(!defined(OS_USEMEMCHECKS 	))||\
-	(!defined(OS_UNUSEDMASK 	))||\
 	(!defined(OS_USECOMBINED 	))||\
 	(!defined(OS_USEEXTCHECKS   ))||\
-	(!defined(OS_DO_TESTSUITE   ))
+	(!defined(OS_USEMEMCHECKS 	))||\
+	(!defined(OS_UNUSEDMASK 	))||\
+	(!defined(OS_TRACE_ON       ))||\
+	(!defined(OS_TRACESIZE      ))
 	#error not all defines in FabOS_config.h are done as described here below!
 #endif
 
 
 /* Example defines for FabOS_config.h     
 
-#define OS_NUMTASKS 		3		// Number of (OS_Create)Tasks ; never >8 (idle task is not counted here!)
-#define OS_NUMMUTEX 		3 		// Number of Mutexes
+#define OS_NUMTASKS  4 // Number of (OS_Create)Tasks ; never >8 (idle task is not counted here!)
+#define OS_NUMMUTEX  3 // Number of Mutexes
+#define OS_NUMALARMS 5 // Number of Alarms
 
-#define OS_ScheduleISR 		TIMER1_COMPA_vect // Interrupt Vector used for OS-tick generation (check out CustomOS_ISRCode if you want to add isr code)
+#define OS_ScheduleISR TIMER1_COMPA_vect // Interrupt Vector used for OS-tick generation (check out CustomOS_ISRCode if you want to add isr code)
 
-#define OS_USECLOCK 		1 		// Use "OS_GetTicks()" which returns a 32bit timer tick
-
-#define OS_USEMEMCHECKS 	1 		// Use "OS_get_unused_Stack()" which returns free stack space for each task
-#define OS_UNUSEDMASK 		0xEE 	// unused Stack RAM will be filled with this byte.
-
-#define OS_USECOMBINED 		1 		// Use "OS_WaitTicks()" and "OS_WaitEventTimeout()" which are easier to use, than combining alarms and events to get the functionality.
-
-#define OS_USEEXTCHECKS 	1		// prevent false use of API -> does not work, but no damage to OS stability.
-
-#define OS_DO_TESTSUITE 	1		// compile and execute the automated software tests.
+#define OS_USECLOCK 1 		// Use "OS_GetTicks()" which returns a 32bit timer tick
+#define OS_USECOMBINED 1 	// Use "OS_WaitEventTimeout()" which is easier to use, than combining alarms and events to get the functionality.
+#define OS_USEEXTCHECKS 1	// check wrong usage of OS API -> does not work, but no damage to OS stability.
+#define OS_USEMEMCHECKS 1 	// Enable "OS_get_unused_Stack()" and "OS_GetQueueSpace()"
+#define OS_UNUSEDMASK 0xEE  // unused Stack RAM will be filled with this byte, if OS_USEMEMCHECKS == 1.
+#define OS_TRACE_ON  1 		// enable trace to OS_Tracebuffer[]
+#define OS_TRACESIZE 1000	// size of OS_Tracebuffer[] (depending on memory left ;-)
 
 */
 

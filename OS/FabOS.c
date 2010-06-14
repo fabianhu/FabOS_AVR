@@ -33,8 +33,8 @@ extern unsigned char __heap_start;
 // The naked attribute tells the compiler not to add code to push the registers it uses onto the stack or even add a RETI instruction at the end. 
 // It just compiles the code inside the braces.
 // *** No direct use of stack space inside a naked function, except embedding it into a function, as this creates a valid stack frame.
-// or use "register unsigned char counter asm("r3")";  Typically, it should be safe to use r2 through r7 that way.
-ISR  (OS_ScheduleISR) //__attribute__ ((naked,signal)) // Timer isr
+// Or use "register unsigned char counter asm("r3")";  Typically, it should be safe to use r2 through r7 that way.
+ISR(OS_ScheduleISR) //__attribute__ ((naked,signal)) // Timer isr
 {
 	OS_Int_saveCPUContext() ; 
 	MyOS.Stacks[MyOS.CurrTask] = SP ; // catch the SP before we (possibly) do anything with it.
@@ -59,7 +59,6 @@ ISR  (OS_ScheduleISR) //__attribute__ ((naked,signal)) // Timer isr
 }
 
 // *********  Internal scheduling and priority stuff
-
 void OS_Int_ProcessAlarms(void)
 {
 	uint8_t alarmID;
@@ -106,7 +105,7 @@ int8_t OS_GetNextTaskNumber() // which is the next task (ready and highest (= ri
 	uint8_t Task;
 	uint8_t	next= OS_NUMTASKS; // NO task is ready, which one to execute?? the idle task !!;
 
-	uint8_t ReadyMask= MyOS.TaskReadyBits; // make working copy
+	OS_TypeTaskBits_t ReadyMask = MyOS.TaskReadyBits; // make working copy
 	
 	OS_TRACE(9);
 
@@ -121,7 +120,7 @@ int8_t OS_GetNextTaskNumber() // which is the next task (ready and highest (= ri
 		else
 		{
 			OS_TRACE(11);
-			ReadyMask= (ReadyMask>>1); // shift to right; "Task" and the shift count is synchronous.
+			ReadyMask = (ReadyMask>>1); // shift to right; "Task" and the shift count is synchronous.
 		}
 	}
 	// now "next" is the next highest prio task.
@@ -319,7 +318,7 @@ uint8_t OS_WaitEvent(uint8_t EventMask) //returns event(s), which lead to execut
 
 // ************************** ALARMS
 
-void OS_SetAlarm(uint8_t AlarmID, uint16_t numTicks ) // set Alarm for the future and continue // set alarm to 0 disable an alarm.
+void OS_SetAlarm(uint8_t AlarmID, OS_TypeAlarmTick_t numTicks ) // set Alarm for the future and continue // set alarm to 0 disable an alarm.
 {
 	OS_ENTERCRITICAL;
 	OS_TRACE(29);
@@ -476,7 +475,7 @@ void OS_GetTicks(uint32_t* pTime)
 
 
 #if OS_USECOMBINED
-uint8_t OS_WaitEventTimeout(uint8_t EventMask, uint8_t AlarmID, uint16_t numTicks ) //returns event on event, 0 on timeout.
+uint8_t OS_WaitEventTimeout(uint8_t EventMask, uint8_t AlarmID, OS_TypeAlarmTick_t numTicks ) //returns event on event, 0 on timeout.
 {
 	uint8_t ret;
 	OS_SetAlarm(AlarmID,numTicks); // set timeout

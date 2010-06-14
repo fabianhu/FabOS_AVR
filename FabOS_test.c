@@ -411,9 +411,9 @@ void TestTask0(void)
 				
 				// check, if q is empty
 				t = OS_GetQueueSpace(&TestQ);
-				assert(t==63);	
+				assert(t==64);	
 								
-				for (i=0;i<63;i++) // overload the Q (only 63 of 64 usable for indication full/empty)
+				for (i=0;i<64;i++) // overload the Q
 				{
 					ret = OS_QueueIn(&TestQ,&i);
 					assert(ret==0);
@@ -445,14 +445,14 @@ void TestTask0(void)
 				//queue long test
 				ret = OS_QueueOut(&TestQLong,(uint8_t*)&ti); // Q empty
 				assert(ret == 1);
-				for (i=0;i<9;i++)
+				for (i=0;i<10;i++)
 				{
 					ret = OS_QueueIn(&TestQLong,(uint8_t*)&longQtest[i]);
 					assert (ret==0);
 				}
 				ret = OS_QueueIn(&TestQLong,(uint8_t*)&longQtest[9]);
 				assert (ret==1); // Q full
-				for (i=0;i<9;i++)
+				for (i=0;i<10;i++)
 				{
 					ret = OS_QueueOut(&TestQLong,(uint8_t*)&ti);
 					assert(ret==0);

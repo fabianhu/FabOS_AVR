@@ -8,7 +8,7 @@
 
 // *********  USER Configurable Block BEGIN
 
-#define OS_NUMTASKS  3 // Number of (OS_Create)Tasks ; never >8 (idle task is not counted here!)
+#define OS_NUMTASKS  3 // Number of (OS_Create)Tasks ; never >64 (idle task is not counted here!)
 #define OS_NUMMUTEX  3 // Number of Mutexes
 #define OS_NUMALARMS 5 // Number of Alarms
 
@@ -25,6 +25,8 @@
 #define OS_UNUSEDMASK 0xEE  // unused Stack RAM will be filled with this byte, if OS_USEMEMCHECKS == 1.
 #define OS_TRACE_ON  1 		// enable trace to OS_Tracebuffer[]
 #define OS_TRACESIZE 1000	// size of OS_Tracebuffer[] (depending on memory left ;-)
+
+#define OS_TypeAlarmTick_t uint16_t // change this type to uint32_t, if you need longer wait time than 65535 OS ticks.
 
 // Task definitions
 
@@ -50,4 +52,4 @@
 
 // *********  USER Configurable Block END 
 
-#define OS_DO_TESTSUITE 1	// compile and execute the automated software tests. Set to 0 for production use of OS.
+#define OS_DO_TESTSUITE 0	// compile and execute the automated software tests. Set to 0 for production use of OS.

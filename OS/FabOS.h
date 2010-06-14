@@ -17,41 +17,52 @@
 #include <avr/interrupt.h>
 #include "../FabOS_config.h"
 
+// variable types for more tasks
+#if OS_NUMTASKS <= 8
+#define OS_TypeTaskBits_t  uint8_t
+#elif OS_NUMTASKS <= 16
+#define OS_TypeTaskBits_t  uint16_t
+#elif OS_NUMTASKS <= 32
+#define OS_TypeTaskBits_t  uint32_t
+#elif OS_NUMTASKS <= 64
+#define OS_TypeTaskBits_t  uint64_t
+#else
+	#error reduce OS_NUMTASKS
+#endif
+
 typedef struct OS_Alarm_tag {
-	uint8_t 	TaskID; // Task to wake up
-	uint16_t 	AlarmTicks;
+	uint8_t 			TaskID; // Task ID to wake up
+	OS_TypeAlarmTick_t 	AlarmTicks; // ticks to count down before reactivation
 } OS_Alarm_t;
 
 // *********  the OS data struct
 typedef struct FabOS_tag
 {
 #if OS_USECLOCK == 1
-	uint32_t    OSTicks;				// the OS time, to prevent clutteded results, alway use the Function OS_GetTicks() to read it.	
+	uint32_t    	OSTicks;					// the OS time, to prevent cluttered results, always use the Function OS_GetTicks() to read it.
 #endif
-	uint8_t		EventMask[OS_NUMTASKS] ;	// The event masks for all the tasks; Index = Task ID // no event for idle task.
-	uint8_t		EventWaiting[OS_NUMTASKS]; // The mask indicates the events, the tasks are waiting for. Index = Task ID
+	uint8_t			EventMask[OS_NUMTASKS] ;	// The event masks for all the tasks; Index = Task ID // no event for idle task.
+	uint8_t			EventWaiting[OS_NUMTASKS]; // The mask indicates the events, the tasks are waiting for. Index = Task ID
 
-	uint8_t 	MutexOwnedByTask[OS_NUMMUTEX] ;	 // Mutex-owner (contains task ID of owner); only one task can own a mutex.
-	uint8_t 	MutexTaskWaiting[OS_NUMTASKS+1] ;	// Mutex-waiters (contains mutex ID) ; Index = Task ID ; The last one is the idle task.
+	uint8_t 		MutexOwnedByTask[OS_NUMMUTEX] ;	 // Mutex-owner (contains task ID of owner); only one task can own a mutex.
+	uint8_t		 	MutexTaskWaiting[OS_NUMTASKS+1] ;	// Mutex-waiters (contains mutex ID) ; Index = Task ID ; The last one is the idle task.
 
-	uint8_t 	CurrTask; 				// here the NUMBER of the actual active task is set.
-	uint8_t 	TaskReadyBits ; 		// here te task activation BITS are set. Task 0 (LSB) has the highest priority.
-	uint16_t 	Stacks[OS_NUMTASKS+1];		// actual SP position addresses for the tasks AND the IDLE-task, which uses the ordinary stack! Index = Task ID
-	OS_Alarm_t	Alarms[OS_NUMALARMS];  // Holds the number of system clock ticks to wait before the task becomes ready to run.
+	uint8_t 		CurrTask; 					// here the NUMBER of the actual active task is set.
+	OS_TypeTaskBits_t	TaskReadyBits ; 			// here the task activation BITS are set. Task 0 (LSB) has the highest priority.
+	uint16_t 		Stacks[OS_NUMTASKS+1];		// actual SP position addresses for the tasks AND the IDLE-task, which uses the ordinary stack! Index = Task ID
+	OS_Alarm_t		Alarms[OS_NUMALARMS];  		// Holds the number of system clock ticks to wait before the task becomes ready to run.
 
 #if OS_USEMEMCHECKS == 1
-	uint8_t*     StackStart[OS_NUMTASKS+1];
+	uint8_t*     StackStart[OS_NUMTASKS+1];		// Stack start pointers for checker function
 #endif
 } FabOS_t;
 
-#define OS_QUEUE_MASK (OS_QUEUE_SIZE-1) // don't forget the braces
- 
 typedef struct OS_Queue_tag {
-	  uint8_t read; // field with oldest content
-	  uint8_t write; // always empty field
-	  uint8_t chunk;
-	  uint8_t size;
-	  uint8_t* data;
+	  uint8_t read; 	// field with oldest content
+	  uint8_t write;	// always empty field
+	  uint8_t chunk;	// size of element
+	  uint8_t size;		// number of elements
+	  uint8_t* data;	// pointer to data
 	} OS_Queue_t;
 
 extern FabOS_t MyOS;
@@ -89,7 +100,7 @@ void 	OS_MutexGet(int8_t mutexID); // number of mutexes limited to NUMMUTEX !!!
 
 void 	OS_MutexRelease(int8_t mutexID); // release the occupied mutex
 
-void 	OS_SetAlarm(uint8_t AlarmID, uint16_t numTicks ); // set Alarm for the future and continue // set alarm to 0 disable it.
+void 	OS_SetAlarm(uint8_t AlarmID, OS_TypeAlarmTick_t numTicks ); // set Alarm for the future and continue // set alarm to 0 disable it.
 
 void 	OS_WaitAlarm(uint8_t AlarmID); // Wait for an Alarm set by OS_SetAlarm
 
@@ -118,7 +129,7 @@ void 	OS_TestSuite(void); // execute test of FabOS (use only, if changed some in
 // Wait for a certain number of OS-ticks (1 = wait to the next timer interrupt)
 
 #if OS_USECOMBINED == 1
-uint8_t OS_WaitEventTimeout(uint8_t EventMask, uint8_t AlarmID, uint16_t numTicks ); //returns event on event, 0 on timeout.
+uint8_t OS_WaitEventTimeout(uint8_t EventMask, uint8_t AlarmID, OS_TypeAlarmTick_t numTicks ); //returns event on event, 0 on timeout.
 #endif
 
 #define OS_WaitTicks(A,X) do{\
@@ -147,7 +158,7 @@ void OS_Int_ProcessAlarms(void);
 
 
 // Save all CPU registers on the AVR chip.
-// The last two lines save the Status Reg.
+// The last two lines save the status register.
 #define OS_Int_saveCPUContext() \
 asm volatile( \
 "	push r0\n\t\
@@ -186,7 +197,7 @@ asm volatile( \
 	push r0");
 
 // Restore all AVR CPU Registers. The first two lines
-// restore the stack pointer.
+// restore the status register.
 #define OS_Int_restoreCPUContext() \
 asm volatile( \
 "	pop r0\n\t\
@@ -225,8 +236,7 @@ asm volatile( \
 	pop r0");
 
 
-
-// *********  some final warning calculations
+// *********  some warning calculations
 
 
 #if (!defined(OS_NUMTASKS		))||\
@@ -240,7 +250,7 @@ asm volatile( \
 	(!defined(OS_UNUSEDMASK 	))||\
 	(!defined(OS_TRACE_ON       ))||\
 	(!defined(OS_TRACESIZE      ))
-	#error not all defines in FabOS_config.h are done as described here below!
+	#error not all defines in FabOS_config.h are done as described here (FabOS.h) below!
 #endif
 
 
@@ -285,4 +295,8 @@ asm volatile( \
 
 #if OS_USEMEMCHECKS == 0
 	#undef UNUSEDMASK
+#endif
+
+#if OS_UNUSEDMASK+OS_NUMTASKS > 0xff
+	#error please redefine OS_UNUSEDMASK to a smaller number!
 #endif

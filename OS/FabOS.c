@@ -15,18 +15,6 @@
 
 #include "FabOS.h"
 
-// variable types for more tasks
-#if OS_NUMTASKS <= 8
-#define OS_TypeTaskBits_t  uint8_t
-#elif OS_NUMTASKS <= 16
-#define OS_TypeTaskBits_t  uint16_t
-#elif OS_NUMTASKS <= 32
-#define OS_TypeTaskBits_t  uint32_t
-#elif OS_NUMTASKS <= 64
-#define OS_TypeTaskBits_t  uint64_t
-#else
-	#error reduce OS_NUMTASKS
-#endif
 FabOS_t MyOS; // the global instance of the OS struct
 
 #if OS_TRACE_ON == 1

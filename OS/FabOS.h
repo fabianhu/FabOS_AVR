@@ -17,6 +17,19 @@
 #include <avr/interrupt.h>
 #include "../FabOS_config.h"
 
+// variable types for more tasks
+#if OS_NUMTASKS <= 8
+#define OS_TypeTaskBits_t  uint8_t
+#elif OS_NUMTASKS <= 16
+#define OS_TypeTaskBits_t  uint16_t
+#elif OS_NUMTASKS <= 32
+#define OS_TypeTaskBits_t  uint32_t
+#elif OS_NUMTASKS <= 64
+#define OS_TypeTaskBits_t  uint64_t
+#else
+	#error reduce OS_NUMTASKS
+#endif
+
 typedef struct OS_Alarm_tag {
 	uint8_t 			TaskID; // Task ID to wake up
 	OS_TypeAlarmTick_t 	AlarmTicks; // ticks to count down before reactivation

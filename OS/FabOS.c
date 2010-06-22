@@ -45,7 +45,7 @@ extern unsigned char __heap_start;
 // The naked attribute tells the compiler not to add code to push the registers it uses onto the stack or even add a RETI instruction at the end. 
 // It just compiles the code inside the braces.
 // *** No direct use of stack space inside a naked function, except embedding it into a function, as this creates a valid stack frame.
-// or use "register unsigned char counter asm("r3")";  Typically, it should be safe to use r2 through r7 that way.
+// Or use "register unsigned char counter asm("r3")";  Typically, it should be safe to use r2 through r7 that way.
 ISR  (OS_ScheduleISR) //__attribute__ ((naked,signal)) // Timer isr
 {
 	OS_Int_saveCPUContext() ; 

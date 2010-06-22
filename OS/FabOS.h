@@ -18,15 +18,15 @@
 #include "../FabOS_config.h"
 
 typedef struct OS_Alarm_tag {
-	uint8_t 	TaskID; // Task to wake up
-	uint16_t 	AlarmTicks;
+	uint8_t 			TaskID; // Task ID to wake up
+	OS_TypeAlarmTick_t 	AlarmTicks; // ticks to count down before reactivation
 } OS_Alarm_t;
 
 // *********  the OS data struct
 typedef struct FabOS_tag
 {
 #if OS_USECLOCK == 1
-	uint32_t    OSTicks;				// the OS time, to prevent clutteded results, alway use the Function OS_GetTicks() to read it.	
+	uint32_t    	OSTicks;					// the OS time, to prevent cluttered results, always use the Function OS_GetTicks() to read it.
 #endif
 	uint8_t		EventMask[OS_NUMTASKS] ;	// The event masks for all the tasks; Index = Task ID // no event for idle task.
 	uint8_t		EventWaiting[OS_NUMTASKS]; // The mask indicates the events, the tasks are waiting for. Index = Task ID
@@ -35,7 +35,7 @@ typedef struct FabOS_tag
 	uint8_t 	MutexTaskWaiting[OS_NUMTASKS+1] ;	// Mutex-waiters (contains mutex ID) ; Index = Task ID ; The last one is the idle task.
 
 	uint8_t 	CurrTask; 				// here the NUMBER of the actual active task is set.
-	uint8_t 	TaskReadyBits ; 		// here te task activation BITS are set. Task 0 (LSB) has the highest priority.
+	OS_TypeTaskBits_t	TaskReadyBits ; 			// here the task activation BITS are set. Task 0 (LSB) has the highest priority.
 	uint16_t 	Stacks[OS_NUMTASKS+1];		// actual SP position addresses for the tasks AND the IDLE-task, which uses the ordinary stack! Index = Task ID
 	OS_Alarm_t	Alarms[OS_NUMALARMS];  // Holds the number of system clock ticks to wait before the task becomes ready to run.
 
@@ -145,7 +145,7 @@ void OS_Int_ProcessAlarms(void);
 
 
 // Save all CPU registers on the AVR chip.
-// The last two lines save the Status Reg.
+// The last two lines save the status register.
 #define OS_Int_saveCPUContext() \
 asm volatile( \
 "	push r0\n\t\
@@ -184,7 +184,7 @@ asm volatile( \
 	push r0");
 
 // Restore all AVR CPU Registers. The first two lines
-// restore the stack pointer.
+// restore the status register.
 #define OS_Int_restoreCPUContext() \
 asm volatile( \
 "	pop r0\n\t\

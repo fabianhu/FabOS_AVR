@@ -27,31 +27,6 @@
 #else
 	#error reduce OS_NUMTASKS
 #endif
-
-
-// *********  the OS data struct
-typedef struct FabOS_tag
-{
-#if OS_USECLOCK == 1
-	uint32_t    	OSTicks;					// the OS time, to prevent cluttered results, always use the Function OS_GetTicks() to read it.
-#endif
-	uint8_t			EventMask[OS_NUMTASKS] ;	// The event masks for all the tasks; Index = Task ID // no event for idle task.
-	uint8_t			EventWaiting[OS_NUMTASKS]; // The mask indicates the events, the tasks are waiting for. Index = Task ID
-
-	uint8_t 		MutexOwnedByTask[OS_NUMMUTEX] ;	 // Mutex-owner (contains task ID of owner); only one task can own a mutex.
-	uint8_t		 	MutexTaskWaiting[OS_NUMTASKS+1] ;	// Mutex-waiters (contains mutex ID) ; Index = Task ID ; The last one is the idle task.
-
-	uint8_t 		CurrTask; 					// here the NUMBER of the actual active task is set.
-	OS_TypeTaskBits_t	TaskReadyBits ; 			// here the task activation BITS are set. Task 0 (LSB) has the highest priority.
-	uint16_t 		Stacks[OS_NUMTASKS+1];		// actual SP position addresses for the tasks AND the IDLE-task, which uses the ordinary stack! Index = Task ID
-	OS_Alarm_t		Alarms[OS_NUMALARMS];  		// Holds the number of system clock ticks to wait before the task becomes ready to run.
-
-#if OS_USEMEMCHECKS == 1
-	uint8_t*     StackStart[OS_NUMTASKS+1];		// Stack start pointers for checker function
-#endif
-} FabOS_t;
-
-
 FabOS_t MyOS; // the global instance of the OS struct
 
 #if OS_TRACE_ON == 1
@@ -63,117 +38,15 @@ FabOS_t MyOS; // the global instance of the OS struct
 	#endif
 #endif
 
-#if OS_TRACE_ON == 1
-	#define OS_TRACE(X)\
-				OS_Tracebuffer[OS_TraceIdx++] = X ; \
-				if(OS_TraceIdx >= sizeof(OS_Tracebuffer)) OS_TraceIdx = 0;
-#else
-	#define OS_TRACE(X) ;
-#endif
-
-// CPU stuff
-
-// Save all CPU registers on the AVR chip.
-// The last two lines save the status register.
-#define OS_Int_saveCPUContext() \
-asm volatile( \
-"	push r0\n\t\
-	push r1\n\t\
-	push r2\n\t\
-	push r3\n\t\
-	push r4\n\t\
-	push r5\n\t\
-	push r6\n\t\
-	push r7\n\t\
-	push r8\n\t\
-	push r9\n\t\
-	push r10\n\t\
-	push r11\n\t\
-	push r12\n\t\
-	push r13\n\t\
-	push r14\n\t\
-	push r15\n\t\
-	push r16\n\t\
-	push r17\n\t\
-	push r18\n\t\
-	push r19\n\t\
-	push r20\n\t\
-	push r21\n\t\
-	push r22\n\t\
-	push r23\n\t\
-	push r24\n\t\
-	push r25\n\t\
-	push r26\n\t\
-	push r27\n\t\
-	push r28\n\t\
-	push r29\n\t\
-	push r30\n\t\
-	push r31\n\t\
-	in r0,0x3f\n\t\
-	push r0");
-
-// Restore all AVR CPU Registers. The first two lines
-// restore the status register.
-#define OS_Int_restoreCPUContext() \
-asm volatile( \
-"	pop r0\n\t\
-	out 0x3f,r0\n\t\
-	pop r31\n\t\
-	pop r30\n\t\
-	pop r29\n\t\
-	pop r28\n\t\
-	pop r27\n\t\
-	pop r26\n\t\
-	pop r25\n\t\
-	pop r24\n\t\
-	pop r23\n\t\
-	pop r22\n\t\
-	pop r21\n\t\
-	pop r20\n\t\
-	pop r19\n\t\
-	pop r18\n\t\
-	pop r17\n\t\
-	pop r16\n\t\
-	pop r15\n\t\
-	pop r14\n\t\
-	pop r13\n\t\
-	pop r12\n\t\
-	pop r11\n\t\
-	pop r10\n\t\
-	pop r9\n\t\
-	pop r8\n\t\
-	pop r7\n\t\
-	pop r6\n\t\
-	pop r5\n\t\
-	pop r4\n\t\
-	pop r3\n\t\
-	pop r2\n\t\
-	pop r1\n\t\
-	pop r0");
-
-
-
-// internal prototypes
-
-void OS_Reschedule(void)__attribute__ ((naked)); // internal: Trigger re-scheduling
-
-int8_t OS_GetNextTaskNumber(); // internal: get the next task to be run// which is the next task (ready and highest (= rightmost); prio);?
-
-void OS_Int_ProcessAlarms(void);
-
-
 // From linker script
 extern unsigned char __heap_start;
-
-
-
 
 // *********  Timer Interrupt
 // The naked attribute tells the compiler not to add code to push the registers it uses onto the stack or even add a RETI instruction at the end. 
 // It just compiles the code inside the braces.
 // *** No direct use of stack space inside a naked function, except embedding it into a function, as this creates a valid stack frame.
-// Or use "register unsigned char counter asm("r3")";  Typically, it should be safe to use r2 through r7 that way.
-ISR(OS_ScheduleISR) //__attribute__ ((naked,signal)) // Timer isr
+// or use "register unsigned char counter asm("r3")";  Typically, it should be safe to use r2 through r7 that way.
+ISR  (OS_ScheduleISR) //__attribute__ ((naked,signal)) // Timer isr
 {
 	OS_Int_saveCPUContext() ; 
 	MyOS.Stacks[MyOS.CurrTask] = SP ; // catch the SP before we (possibly) do anything with it.
@@ -198,6 +71,7 @@ ISR(OS_ScheduleISR) //__attribute__ ((naked,signal)) // Timer isr
 }
 
 // *********  Internal scheduling and priority stuff
+
 void OS_Int_ProcessAlarms(void)
 {
 	uint8_t alarmID;
@@ -259,7 +133,7 @@ int8_t OS_GetNextTaskNumber() // which is the next task (ready and highest (= ri
 		else
 		{
 			OS_TRACE(11);
-			ReadyMask = (ReadyMask>>1); // shift to right; "Task" and the shift count is synchronous.
+			ReadyMask= (ReadyMask>>1); // shift to right; "Task" and the shift count is synchronous.
 		}
 	}
 	// now "next" is the next highest prio task.
@@ -287,7 +161,7 @@ int8_t OS_GetNextTaskNumber() // which is the next task (ready and highest (= ri
 }
 
 // internal task create function
-void OS_TaskCreateInt( void (*t)(), uint8_t TaskID, uint8_t *stack, uint8_t stackSize ) 
+void OS_TaskCreateInt( void (*t)(), uint8_t TaskID, uint8_t *stack, uint16_t stackSize )
 {
 	uint16_t z ;
 	OS_TRACE(15);
@@ -345,6 +219,7 @@ void OS_StartExecution()
 	//store THIS context for idling!!
 	MyOS.CurrTask = OS_NUMTASKS;
 	OS_Reschedule();
+	OS_LEAVECRITICAL; // the stored context has the interrupts OFF!
 }
 
 
@@ -456,10 +331,6 @@ uint8_t OS_WaitEvent(uint8_t EventMask) //returns event(s), which lead to execut
 
 
 // ************************** ALARMS
-void OS_CreateAlarm(uint8_t ALARMID, uint8_t TASKID)
-{
-	MyOS.Alarms[ALARMID].TaskID = TASKID; MyOS.Alarms[ALARMID].AlarmTicks = 0;
-}
 
 
 void OS_SetAlarm(uint8_t AlarmID, OS_TypeAlarmTick_t numTicks ) // set Alarm for the future and continue // set alarm to 0 disable an alarm.

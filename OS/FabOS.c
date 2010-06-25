@@ -351,14 +351,14 @@ void OS_WaitAlarm(uint8_t AlarmID) // Wait for any Alarm set by OS_SetAlarm
 	}
 	if(MyOS.Alarms[AlarmID].TaskID != MyOS.CurrTask) // Alarm is not assigned!
 	{
-		OS_TRACE(32);
+		OS_TRACE(30);
 		OS_ErrorHook(9); // OS_WaitAlarm: Alarm is not assigned to the task
 		return;  
 	}
 #endif
 
 	OS_ENTERCRITICAL; // re-enabled by OS_Schedule()
-	OS_TRACE(30);
+	OS_TRACE(31);
 	if(MyOS.Alarms[AlarmID].AlarmTicks == 0 ) // notice: this "if" could be possibly omitted.
 	{
 #if OS_USEEXTCHECKS == 1
@@ -369,7 +369,7 @@ void OS_WaitAlarm(uint8_t AlarmID) // Wait for any Alarm set by OS_SetAlarm
 	}
 	else
 	{
-		OS_TRACE(33);
+		OS_TRACE(32);
 		MyOS.TaskReadyBits &= ~(1<<MyOS.CurrTask) ;  // Disable this task
 		OS_Reschedule();  // re-schedule; let the others run...	
 	}

@@ -278,11 +278,6 @@ asm volatile( \
 	#warning more mutexes than tasks? are you serious with that concept?
 #endif
 
-#if NUMTASKS >8 
-	#error only 8 tasks are possible, if you want more, you have to change some datatypes inside the FabOS_t struct typedef and where these are used..
-#endif
-
-
 #if (OS_DO_TESTSUITE == 1) && (\
 		(	OS_NUMTASKS 	!=3	) ||\
 		(	OS_NUMMUTEX 	!=3	) ||\

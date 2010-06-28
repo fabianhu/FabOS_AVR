@@ -14,8 +14,12 @@
 
 #if defined (__AVR_ATmega32__)
 	#define OS_ScheduleISR TIMER1_COMPA_vect // Interrupt Vector used for OS-tick generation (check out CustomOS_ISRCode if you want to add isr code)
+#elif defined (__AVR_ATmega644P__)
+	#define OS_ScheduleISR TIMER1_COMPA_vect 
 #elif defined (__AVR_ATxmega32A4__)
 	#define OS_ScheduleISR TCC1_CCA_vect
+#else
+	#error "MCU Timer ISR not defined. Set correct ISR vector in FabOS_config.h"
 #endif
 
 #define OS_USECLOCK 1 		// Use "OS_GetTicks()" which returns a 32bit timer tick

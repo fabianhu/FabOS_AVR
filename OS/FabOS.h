@@ -132,9 +132,9 @@ void 	OS_TestSuite(void); // execute regression test of FabOS (OS development on
 uint8_t OS_WaitEventTimeout(uint8_t EventMask, uint8_t AlarmID, OS_TypeAlarmTick_t numTicks ); //returns event on event, 0 on timeout.
 #endif
 
-#define OS_WaitTicks(A,X) do{\
-		OS_SetAlarm(A,X);\
-		OS_WaitAlarm(A);\
+#define OS_WaitTicks(AlarmID,numTicks) do{\
+		OS_SetAlarm(AlarmID,numTicks);\
+		OS_WaitAlarm(AlarmID);\
 		}while(0)
 
 

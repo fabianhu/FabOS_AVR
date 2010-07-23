@@ -204,6 +204,10 @@ void OS_StartExecution()
 	}
 #endif
 
+#if OS_USECLOCK == 1
+	MyOS.OSTicks = 0L; 	// reset the RT-clock...
+#endif
+
 	//store THIS context for idling!!
 	MyOS.CurrTask = OS_NUMTASKS;
 	OS_Reschedule();

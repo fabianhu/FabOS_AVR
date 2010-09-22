@@ -13,11 +13,17 @@
 #define OS_NUMALARMS 5 // Number of Alarms
 
 #if defined (__AVR_ATmega32__)
-	#define OS_ScheduleISR TIMER1_COMPA_vect // Interrupt Vector used for OS-tick generation (check out CustomOS_ISRCode if you want to add isr code)
+	#define OS_ScheduleISR 			TIMER1_COMPA_vect // Interrupt Vector used for OS-tick generation (check out CustomOS_ISRCode if you want to add isr code)
+	#define OS_ALLOWSCHEDULING 		TIMSK |= (1<<OCIE1A);	// turn Timer Interrupt ON
+	#define OS_PREVENTSCHEDULING 	TIMSK &= ~(1<<OCIE1A); // turn Timer Interrupt OFF
 #elif defined (__AVR_ATmega644P__)
-	#define OS_ScheduleISR TIMER1_COMPA_vect 
+	#define OS_ScheduleISR 			TIMER1_COMPA_vect
+	#define OS_ALLOWSCHEDULING 		TIMSK1 |= (1<<OCIE1A);	// turn Timer Interrupt ON
+	#define OS_PREVENTSCHEDULING 	TIMSK1 &= ~(1<<OCIE1A); // turn Timer Interrupt OFF
 #elif defined (__AVR_ATxmega32A4__)
-	#define OS_ScheduleISR TCC1_CCA_vect
+	#define OS_ScheduleISR 			TCC1_CCA_vect
+	#define OS_ALLOWSCHEDULING 		TCC1.INTCTRLB = 0 ;//;	// turn Timer Interrupt ON
+	#define OS_PREVENTSCHEDULING 	TCC1.INTCTRLB = 2 ; // turn Timer Interrupt OFF
 #else
 	#error "MCU Timer ISR not defined. Set correct ISR vector in FabOS_config.h"
 #endif
@@ -26,7 +32,7 @@
 #define OS_USECOMBINED 1 	// Use "OS_WaitEventTimeout()" which is easier to use, than combining alarms and events to get the functionality.
 #define OS_USEEXTCHECKS 1	// check wrong usage of OS API -> does not work, but no damage to OS stability.
 #define OS_USEMEMCHECKS 1 	// Enable "OS_get_unused_Stack()" and "OS_GetQueueSpace()"
-#define OS_UNUSEDMASK 0xEE  // unused Stack RAM will be filled with this byte, if OS_USEMEMCHECKS == 1.
+#define OS_UNUSEDMASK 0xAA  // unused Stack RAM will be filled with this byte, if OS_USEMEMCHECKS == 1.
 #define OS_TRACE_ON  0 		// enable trace to OS_Tracebuffer[]
 #define OS_TRACESIZE 1000	// size of OS_Tracebuffer[] (depending on memory left ;-)
 

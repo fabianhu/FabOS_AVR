@@ -14,6 +14,7 @@
 */
 
 #include "FabOS.h"
+#include "../FabOS_config.h"
 
 FabOS_t MyOS; // the global instance of the OS struct
 

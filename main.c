@@ -59,6 +59,9 @@ void OS_CustomISRCode(void)
 
 #elif defined (__AVR_ATxmega32A4__)
 	TCC1.CNT=0; // reset the timer on ISR to have correct timing
+
+#elif defined (__AVR_ATmega644P__)
+	TCNT1 = 0;
 #else
 	#error MCU not yet supported, you must configure a timer yourself.
 #endif
@@ -72,12 +75,22 @@ void CPU_init(void)
 	//Timer0 Initializations for ATMEGA16
 	//TCCR0 |= 5;  // Enable TMR0, set clock source to CLKIO/1024. Interrupts @ 32.768ms intervals @ 8 MHz. This means tasks can execute at least 130,000 instructions before being preempted.
 	//TIMSK |= 1 ; // Interrupt on TMR0 Overflow.
-#if defined (__AVR_ATmega32__) || defined (__AVR_ATmega644P__)
+#if defined (__AVR_ATmega32__) 
 
 	TCCR1A = 0b00000000;
 	TCCR1B = 0b00000011; //250kHZ timer ck
 	OCR1A  = 250; //interrupt every 1ms
 	TIMSK |= 1<<OCIE1A; // Output Compare Interrupt ON
+
+#elif defined (__AVR_ATmega644P__)
+
+	// init cyclic ISR
+	TCCR1A = 0b00000000; 
+	TCCR1B = 0b00000010; //1250 kHZ timer ck
+	OCR1A  = 12500; //interrupt every 10ms at 10MHz
+
+	TIMSK1 |= 1<<OCIE1A;
+
 	
 #elif defined (__AVR_ATxmega32A4__)
 	// set ck = 32MHz,

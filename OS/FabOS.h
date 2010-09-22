@@ -153,15 +153,15 @@ void OS_Int_ProcessAlarms(void);
 
 // *********  CPU related assembler stuff
 
-#define OS_ENTERCRITICAL cli();
-#define OS_LEAVECRITICAL sei();
-
+#define OS_DISABLEALLINTERRUPTS cli();
+#define OS_ENABLEALLINTERRUPTS sei();
 
 // Save all CPU registers on the AVR chip.
 // The last two lines save the status register.
 #define OS_Int_saveCPUContext() \
 asm volatile( \
-"	push r0\n\t\
+"	cli\n\t\
+	push r0\n\t\
 	push r1\n\t\
 	push r2\n\t\
 	push r3\n\t\
@@ -194,13 +194,15 @@ asm volatile( \
 	push r30\n\t\
 	push r31\n\t\
 	in r0,0x3f\n\t\
-	push r0");
+	push r0\n\t\
+	sei");
 
 // Restore all AVR CPU Registers. The first two lines
 // restore the status register.
 #define OS_Int_restoreCPUContext() \
 asm volatile( \
-"	pop r0\n\t\
+"	cli\n\t\
+	pop r0\n\t\
 	out 0x3f,r0\n\t\
 	pop r31\n\t\
 	pop r30\n\t\
@@ -233,7 +235,8 @@ asm volatile( \
 	pop r3\n\t\
 	pop r2\n\t\
 	pop r1\n\t\
-	pop r0");
+	pop r0\n\t\
+	sei");
 
 
 

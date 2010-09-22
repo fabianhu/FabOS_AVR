@@ -81,6 +81,14 @@ void OS_Int_ProcessAlarms(void)
 	}
 }
 
+void leaveISR(void) __attribute__ ((naked));
+void leaveISR(void)
+{
+	asm("reti"); // used to quit the ISR without loosing the control flow.
+	// call into subroutine and "reti" from it, which resets the states of the interrupt engine.
+	// The additional reti at the end of the real ISR has no additional effect.
+}
+
 void OS_Reschedule(void) //with "__attribute__ ((naked))"
 {
 	OS_PREVENTSCHEDULING;
@@ -98,7 +106,7 @@ void OS_Reschedule(void) //with "__attribute__ ((naked))"
 
 	OS_Int_restoreCPUContext() ;
 	OS_ALLOWSCHEDULING;
-	asm volatile("ret"); 
+	asm volatile("reti"); // return from interrupt, even if not in Interrupt. Just to ensure, that the ISR is left.
 }
 
 int8_t OS_GetNextTaskNumber() // which is the next task (ready and highest (= rightmost) prio)?

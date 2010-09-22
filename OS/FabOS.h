@@ -12,6 +12,10 @@
 	If you have to change something, please let the author know via FabOS@huslik-elektronik.de.
 
 */
+#ifndef FABOS_H
+#define FABOS_H
+
+
 
 #include <avr/io.h>
 #include <avr/interrupt.h>
@@ -299,3 +303,5 @@ asm volatile( \
 #if OS_UNUSEDMASK+OS_NUMTASKS > 0xff
 	#error please redefine OS_UNUSEDMASK to a smaller number!
 #endif
+
+#endif // FABOS_H

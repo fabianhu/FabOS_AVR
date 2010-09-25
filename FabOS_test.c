@@ -40,13 +40,13 @@ uint8_t TestResults[MAXTESTCASES]; // test result array (0= OK)
 uint8_t TestProcessed[MAXTESTCASES]; // test passed array (number of processed assertions
 
 #define assert(X) do{								\
-						OS_ENTERCRITICAL;			\
+						OS_DISABLEALLINTERRUPTS;	\
 						if(!X)						\
 						{							\
 							TestResults[testcase]++;\
 						}							\
 						TestProcessed[testcase]++;	\
-						OS_LEAVECRITICAL;			\
+						OS_ENABLEALLINTERRUPTS;		\
 					}while(0)
 
 void WasteOfTime(uint32_t waittime);

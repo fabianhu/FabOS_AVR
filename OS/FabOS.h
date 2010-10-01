@@ -164,8 +164,7 @@ void OS_Int_ProcessAlarms(void);
 // The last two lines save the status register.
 #define OS_Int_saveCPUContext() \
 asm volatile( \
-"	cli\n\t\
-	push r0\n\t\
+"	push r0\n\t\
 	push r1\n\t\
 	push r2\n\t\
 	push r3\n\t\
@@ -198,15 +197,13 @@ asm volatile( \
 	push r30\n\t\
 	push r31\n\t\
 	in r0,0x3f\n\t\
-	push r0\n\t\
-	sei");
+	push r0\n\t");
 
 // Restore all AVR CPU Registers. The first two lines
 // restore the status register.
 #define OS_Int_restoreCPUContext() \
 asm volatile( \
-"	cli\n\t\
-	pop r0\n\t\
+"	pop r0\n\t\
 	out 0x3f,r0\n\t\
 	pop r31\n\t\
 	pop r30\n\t\
@@ -239,8 +236,7 @@ asm volatile( \
 	pop r3\n\t\
 	pop r2\n\t\
 	pop r1\n\t\
-	pop r0\n\t\
-	sei");
+	pop r0\n\t");
 
 
 

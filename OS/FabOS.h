@@ -22,13 +22,13 @@
 #include "../FabOS_config.h"
 
 // variable types for more tasks
-#if OS_NUMTASKS < 8
+#if OS_NUMTASKS <= 8
 #define OS_TypeTaskBits_t  uint8_t
-#elif OS_NUMTASKS < 16
+#elif OS_NUMTASKS <= 16
 #define OS_TypeTaskBits_t  uint16_t
-#elif OS_NUMTASKS < 32
+#elif OS_NUMTASKS <= 32
 #define OS_TypeTaskBits_t  uint32_t
-#elif OS_NUMTASKS < 64
+#elif OS_NUMTASKS <= 64
 #define OS_TypeTaskBits_t  uint64_t
 #else
 	#error reduce OS_NUMTASKS

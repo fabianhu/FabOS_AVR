@@ -149,7 +149,7 @@ int8_t OS_GetNextTaskNumber() // which is the next task (ready and highest (= ri
 			next = MyOS.MutexOwnedByTask[MyOS.MutexTaskWaiting[next]]; 
 			// the blocker gets the run.
 			// this is also a priority inversion.
-			if(((1<<next)&MyOS.TaskReadyBits) == 0)  // special case, where the blocker is not ready to run (waiting inside mutex)
+			if(((1<<next)&MyOS.TaskReadyBits) == 0)  // special case, where the blocker is not ready to run (somehow illegal waiting inside mutex)
 			{
 				OS_TRACE(14);
 				next = OS_NUMTASKS; // the idle task gets the run...

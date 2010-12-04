@@ -22,13 +22,13 @@
 #include "../FabOS_config.h"
 
 // variable types for more tasks
-#if OS_NUMTASKS <= 8
+#if OS_NUMTASKS < 8
 #define OS_TypeTaskBits_t  uint8_t
-#elif OS_NUMTASKS <= 16
+#elif OS_NUMTASKS < 16
 #define OS_TypeTaskBits_t  uint16_t
-#elif OS_NUMTASKS <= 32
+#elif OS_NUMTASKS < 32
 #define OS_TypeTaskBits_t  uint32_t
-#elif OS_NUMTASKS <= 64
+#elif OS_NUMTASKS < 64
 #define OS_TypeTaskBits_t  uint64_t
 #else
 	#error reduce OS_NUMTASKS
@@ -43,21 +43,21 @@ typedef struct OS_Alarm_tag {
 typedef struct FabOS_tag
 {
 #if OS_USECLOCK == 1
-	uint32_t    	OSTicks;					// the OS time, to prevent cluttered results, always use the Function OS_GetTicks() to read it.
+	volatile uint32_t    	OSTicks;					// the OS time, to prevent cluttered results, always use the Function OS_GetTicks() to read it.
 #endif
-	uint8_t		EventMask[OS_NUMTASKS] ;	// The event masks for all the tasks; Index = Task ID // no event for idle task.
-	uint8_t		EventWaiting[OS_NUMTASKS]; // The mask indicates the events, the tasks are waiting for. Index = Task ID
+	volatile uint8_t		EventMask[OS_NUMTASKS] ;	// The event masks for all the tasks; Index = Task ID // no event for idle task.
+	volatile uint8_t		EventWaiting[OS_NUMTASKS]; // The mask indicates the events, the tasks are waiting for. Index = Task ID
 
-	uint8_t 	MutexOwnedByTask[OS_NUMMUTEX] ;	 // Mutex-owner (contains task ID of owner); only one task can own a mutex.
-	uint8_t 	MutexTaskWaiting[OS_NUMTASKS+1] ;	// Mutex-waiters (contains mutex ID) ; Index = Task ID ; The last one is the idle task.
+	volatile uint8_t 	MutexOwnedByTask[OS_NUMMUTEX] ;	 // Mutex-owner (contains task ID of owner); only one task can own a mutex.
+	volatile uint8_t 	MutexTaskWaiting[OS_NUMTASKS+1] ;	// Mutex-waiters (contains mutex ID) ; Index = Task ID ; The last one is the idle task.
 
-	uint8_t 	CurrTask; 				// here the NUMBER of the actual active task is set.
-	OS_TypeTaskBits_t	TaskReadyBits ; 			// here the task activation BITS are set. Task 0 (LSB) has the highest priority.
-	uint16_t 	Stacks[OS_NUMTASKS+1];		// actual SP position addresses for the tasks AND the IDLE-task, which uses the ordinary stack! Index = Task ID
-	OS_Alarm_t	Alarms[OS_NUMALARMS];  // Holds the number of system clock ticks to wait before the task becomes ready to run.
+	volatile uint8_t 	CurrTask; 				// here the NUMBER of the actual active task is set.
+	volatile OS_TypeTaskBits_t	TaskReadyBits ; 			// here the task activation BITS are set. Task 0 (LSB) has the highest priority.
+	volatile uint16_t 	Stacks[OS_NUMTASKS+1];		// actual SP position addresses for the tasks AND the IDLE-task, which uses the ordinary stack! Index = Task ID
+	volatile OS_Alarm_t	Alarms[OS_NUMALARMS];  // Holds the number of system clock ticks to wait before the task becomes ready to run.
 
 #if OS_USEMEMCHECKS == 1
-	uint8_t*     StackStart[OS_NUMTASKS+1];		// Stack start pointers for checker function
+	volatile uint8_t*     StackStart[OS_NUMTASKS+1];		// Stack start pointers for checker function
 #endif
 } FabOS_t;
 
@@ -278,18 +278,19 @@ asm volatile( \
 
 
 #if NUMMUTEX > NUMTASKS 
-	#warning more mutexes than tasks? are you serious with that concept?
+	#warning "more mutexes than tasks? are you serious with that concept?"
 #endif
 
 #if (OS_DO_TESTSUITE == 1) && (\
-		(	OS_NUMTASKS 	!=3	) ||\
+		(	OS_NUMTASKS 	!=5	) ||\
 		(	OS_NUMMUTEX 	!=3	) ||\
+		(   OS_NUMALARMS    !=6 ) ||\
 		(	OS_USEEXTCHECKS !=1 ) ||\
 		(	OS_USECLOCK 	!=1	) ||\
 		(	OS_USEMEMCHECKS !=1	) ||\
 		(	OS_USECOMBINED 	!=1	) \
 		) 
-		#error please configure the defines for the testsuite as stated above!
+		#error "please configure the defines for the testsuite as stated above!"
 #endif
 
 #if OS_USEMEMCHECKS == 0

@@ -35,9 +35,8 @@ extern unsigned char __heap_start;
 // It just compiles the code inside the braces.
 // *** No direct use of stack space inside a naked function, except embedding it into a function, as this creates a valid stack frame.
 // Or use "register unsigned char counter asm("r3")";  Typically, it should be safe to use r2 through r7 that way.
-ISR  (OS_ScheduleISR) //__attribute__ ((naked,signal)) // Timer isr
+ISR(OS_ScheduleISR) //__attribute__ ((naked,signal)) // Timer isr
 {
-	OS_DISABLEALLINTERRUPTS
 	OS_Int_saveCPUContext() ; 
 	MyOS.Stacks[MyOS.CurrTask] = SP ; // catch the SP before we (possibly) do anything with it.
 
@@ -58,7 +57,6 @@ ISR  (OS_ScheduleISR) //__attribute__ ((naked,signal)) // Timer isr
 
 	SP = MyOS.Stacks[MyOS.CurrTask] ;
 	OS_Int_restoreCPUContext() ;
-	OS_ENABLEALLINTERRUPTS
 	asm volatile("reti");  // at the XMEGA the I in SREG is statically ON before and after RETI.
 }
 
@@ -85,36 +83,25 @@ void OS_Int_ProcessAlarms(void)
 	}
 }
 
-void leaveISR(void) __attribute__ ((naked));
-void leaveISR(void)
-{
-	asm("reti"); // used to quit the ISR without loosing the control flow.
-	// call into subroutine and "reti" from it, which resets the states of the interrupt engine.
-	// The additional reti at the end of the real ISR has no additional effect.
-}
-
 void OS_Reschedule(void) //with "__attribute__ ((naked))"
 {
-	OS_DISABLEALLINTERRUPTS
-//	OS_PREVENTSCHEDULING;
+	OS_PREVENTSCHEDULING
 	
-
 	OS_Int_saveCPUContext() ; 
 	MyOS.Stacks[MyOS.CurrTask] = SP ; // catch the SP before we (possibly) do anything with it.
-	
+
 	OS_TRACE(7);
 
 	// task is to be run
 	MyOS.CurrTask = OS_GetNextTaskNumber();
 
 	OS_TRACE(8);
-	
+
 	SP = MyOS.Stacks[MyOS.CurrTask] ;// set Stack pointer
 	OS_Int_restoreCPUContext() ;
 	
-	OS_ENABLEALLINTERRUPTS;
-	OS_ALLOWSCHEDULING; // ALWAYS, because could be disabled by other API!!
-	asm volatile("reti"); // return from interrupt, even if not in Interrupt. Just to ensure, that the ISR is left.
+	OS_ALLOWSCHEDULING;
+	asm volatile("ret"); // return from interrupt, even if not in Interrupt. Just to ensure, that the ISR is left.
 }
 
 int8_t OS_GetNextTaskNumber() // which is the next task (ready and highest (= rightmost) prio)?
@@ -473,7 +460,7 @@ uint8_t OS_GetQueueSpace(OS_Queue_t* pQueue)
 uint16_t OS_GetUnusedStack (uint8_t TaskID)
 {
    uint16_t unused = 0;
-   uint8_t *p = MyOS.StackStart[TaskID]; 
+   volatile uint8_t *p = MyOS.StackStart[TaskID]; 
 
    do
    {

@@ -97,9 +97,12 @@ void CPU_init(void)
 	// PLL (128 MHz) -> peripheral x4
 	// Presc. B (64MHz) -> peripheral x2
 	// Presc. C (32MHz) -> CPU
+
+#if USEEXTERNALOSC == 1
 	OSC.XOSCCTRL = OSC_FRQRANGE_12TO16_gc | OSC_XOSCSEL_XTAL_16KCLK_gc;
 	OSC.CTRL |= OSC_XOSCEN_bm; // enable XTAL
-	OSC.PLLCTRL = OSC_PLLSRC_XOSC_gc | 8; // configure pll x 8;
+	// ! PLL MUST run at least 10MHz
+	OSC.PLLCTRL = OSC_PLLSRC_XOSC_gc | 8; // configure pll x 8; // fixme check if correct!!
 	while (!(OSC.STATUS & OSC_XOSCRDY_bm))
 	{
 		asm("nop"); // wait for the bit to become set
@@ -112,6 +115,34 @@ void CPU_init(void)
 	{
 		asm("nop"); // wait for the bit to become set
 	}
+#else
+	CCP = CCP_IOREG_gc; // unlock
+	OSC_XOSCFAIL = OSC_XOSCFDEN_bm; // enable NMI for oscillator failure.
+
+	// Desired Clock : 16MHz,
+	// PLL (16 MHz) -> peripheral x1
+	// Presc. B (16MHz) -> peripheral x1
+	// Presc. C (16MHz) -> CPU
+	//OSC_XOSCCTRL = 0;
+	OSC_CTRL = OSC_RC2MEN_bm; // enable XTAL
+	OSC_PLLCTRL = OSC_PLLSRC_RC2M_gc | 8; // configure pll x 8; (min 10MHz!)
+	while (!(OSC_STATUS & OSC_RC2MRDY_bm))
+	{
+		asm("nop"); // wait for the bit to become set
+	}
+	OSC_DFLLCTRL = OSC_RC2MCREF_bm; // enable auto calib.
+	DFLLRC2M_CTRL = DFLL_ENABLE_bm;
+
+	OSC_CTRL |= OSC_PLLEN_bm; // enable PLL
+
+	CCP = CCP_IOREG_gc; // unlock
+	CLK_PSCTRL = CLK_PSADIV_1_gc|CLK_PSBCDIV_1_1_gc;
+	while (!(OSC_STATUS & OSC_PLLRDY_bm))
+	{
+		asm("nop"); // wait for the bit to become set
+	}
+
+#endif
 	 
 	CCP = CCP_IOREG_gc; // unlock
 	CLK.CTRL = CLK_SCLKSEL_PLL_gc; // select PLL to run with

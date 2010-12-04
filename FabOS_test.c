@@ -23,6 +23,8 @@ avr-gcc -mmcu=atmega32 -E FabOS_test.c >bla.c  invoke preprocessor only
 OS_DeclareTask(TestTask0,200);
 OS_DeclareTask(TestTask1,200);
 OS_DeclareTask(TestTask2,200);
+OS_DeclareTask(TestTaskhi,100);
+OS_DeclareTask(TestTasklo,100);
 
 volatile uint16_t r,s,t,u;
 volatile uint8_t testvar=0;
@@ -41,7 +43,7 @@ uint8_t TestProcessed[MAXTESTCASES]; // test passed array (number of processed a
 
 #define assert(X) do{								\
 						OS_DISABLEALLINTERRUPTS;	\
-						if(!X)						\
+						if(!(X))					\
 						{							\
 							TestResults[testcase]++;\
 						}							\
@@ -56,7 +58,14 @@ void WasteOfTime(uint32_t waittime);
 #define OSALMTest1 1
 #define OSALMTest2 2
 #define OSALMTest3 3
+#define OSALMTesthi 4
+#define OSALMTestlo 5
 
+#define OSTestTskID0 1
+#define OSTestTskID1 2
+#define OSTestTskID2 3
+#define OSTestTskIDlo 4
+#define OSTestTskIDhi 0
 
 void OS_TestSuite(void)
 {
@@ -64,14 +73,18 @@ void OS_TestSuite(void)
 	uint8_t test0pass=0;
 
 
-    OS_CreateTask(TestTask0, 0);
-    OS_CreateTask(TestTask1, 1);
-    OS_CreateTask(TestTask2, 2);
+    OS_CreateTask(TestTaskhi, OSTestTskIDhi);
+    OS_CreateTask(TestTask0, OSTestTskID0);
+    OS_CreateTask(TestTask1, OSTestTskID1);
+    OS_CreateTask(TestTask2, OSTestTskID2);
+    OS_CreateTask(TestTasklo, OSTestTskIDlo);
 
-    OS_CreateAlarm(OSALMTest0,0);
-    OS_CreateAlarm(OSALMTest1,1);
-    OS_CreateAlarm(OSALMTest2,2);
-    OS_CreateAlarm(OSALMTest3,0); // testcase 10
+    OS_CreateAlarm(OSALMTest0,OSTestTskID0);
+    OS_CreateAlarm(OSALMTest1,OSTestTskID1);
+    OS_CreateAlarm(OSALMTest2,OSTestTskID2);
+    OS_CreateAlarm(OSALMTest3,OSTestTskID0); // testcase 10
+    OS_CreateAlarm(OSALMTestlo,OSTestTskIDlo);
+    OS_CreateAlarm(OSALMTesthi,OSTestTskIDhi);
 
 	OS_StartExecution() ;
 	while(1)
@@ -289,7 +302,7 @@ void TestTask2(void)
 				WasteOfTime(50);
 				assert(testvar == 7);
 				OS_MutexRelease(0);
-				OS_SetEvent(1,1<<1);
+				OS_SetEvent(OSTestTskID1,1<<1);
 				// 2:mutex is occupied
 				OS_MutexGet(0);
 				testvar = 4;
@@ -365,21 +378,21 @@ void TestTask0(void)
 				testvar =0;
 				OS_WaitTicks(OSALMTest0, 10);
 				assert(testvar==1);
-				OS_SetEvent(1,1<<0);
+				OS_SetEvent(OSTestTskID1,1<<0);
 				OS_WaitTicks(OSALMTest0, 2);
 				assert(testvar==2);
 // A occurs, then wait for A
 				testvar =3;
-				OS_SetEvent(1,1<<0);
+				OS_SetEvent(OSTestTskID1,1<<0);
 				assert(testvar==3);
 				OS_WaitTicks(OSALMTest0, 100); // other task wastes time...
 				assert(testvar==4);
 // wait for more events, one occurs, then the other
-				OS_SetEvent(1,1<<2);
+				OS_SetEvent(OSTestTskID1,1<<2);
 				assert(testvar==4);
 				OS_WaitTicks(OSALMTest0, 10);
 				assert(testvar==6);
-				OS_SetEvent(1,1<<1);
+				OS_SetEvent(OSTestTskID1,1<<1);
 				assert(testvar==6);
 				OS_WaitTicks(OSALMTest0, 10);
 				assert(testvar==8);
@@ -399,19 +412,20 @@ void TestTask0(void)
 					ret = OS_QueueIn(&TestQ,&i);
 					assert(ret==0);
 				}
-				OS_SetEvent(1,1<<6);
+				OS_SetEvent(OSTestTskID1,1<<6);
 				OS_WaitTicks(OSALMTest0, 50);
 				for (i=20;i>0;i--) // backward
 				{
 					ret = OS_QueueIn(&TestQ,&i);
 					assert(ret==0);
 				}
-				OS_SetEvent(1,1<<6);
+				OS_SetEvent(OSTestTskID1,1<<6);
 				OS_WaitTicks(OSALMTest0, 50);
 				
 				// check, if q is empty
 				t = OS_GetQueueSpace(&TestQ);
-				assert(t==64);	
+				assert(t==64);
+					
 								
 				for (i=0;i<64;i++) // overload the Q
 				{
@@ -436,7 +450,7 @@ void TestTask0(void)
 				break;
 			case 6:
 				// Event with timeout
-				OS_SetEvent(1,1<<3);
+				OS_SetEvent(OSTestTskID1,1<<3);
 				OS_WaitTicks(OSALMTest0, 50);
 				// do not set the second one...
 				
@@ -477,16 +491,16 @@ void TestTask0(void)
 			case 9:
 				// test of OS_GetUnusedStack (uint8_t TaskID)
 
-				t=OS_GetUnusedStack(0); // task0
+				t=OS_GetUnusedStack(OSTestTskID0); // task0
 				assert(t>80 && t<150);
 
-				t=OS_GetUnusedStack(1); // task1
+				t=OS_GetUnusedStack(OSTestTskID1); // task1
 				assert(t>80 && t<150);
 
-				t=OS_GetUnusedStack(2); // task2
+				t=OS_GetUnusedStack(OSTestTskID2); // task2
 				assert(t>80 && t<150);
 
-				t=OS_GetUnusedStack(3); // idle
+				t=OS_GetUnusedStack(5); // idle
 				assert(t>2000 && t<2600);
 
 
@@ -497,10 +511,10 @@ void TestTask0(void)
 				OS_SetAlarm(OSALMTest3,64);
 				OS_WaitAlarm(OSALMTest0);
 				OS_GetTicks(&tj);
-				assert(ti-tj == 39);
+				assert(tj-ti == 39);
 				OS_WaitAlarm(OSALMTest3);
 				OS_GetTicks(&tj);
-				assert(ti-tj == 64);
+				assert(tj-ti == 64);
 
 				break;
 			case 11:
@@ -521,8 +535,8 @@ void TestTask0(void)
 		OS_WaitTicks(OSALMTest0, 500); // wait for tests to be processed...
 
 		testcase++;
-		OS_SetEvent(1,1<<7); // tick other tasks in sync.
-		OS_SetEvent(2,1<<7);	
+		OS_SetEvent(OSTestTskID1,1<<7); // tick other tasks in sync.
+		OS_SetEvent(OSTestTskID2,1<<7);
 	}//while(1)
 
 
@@ -539,6 +553,28 @@ void WasteOfTime(uint32_t waittime)
 	while (newTime - oldTime < waittime);
 }
 
+
+void TestTaskhi(void)
+{
+	while(1)
+	{
+		OS_SetAlarm(OSALMTesthi,3);
+		OS_WaitAlarm(OSALMTesthi);
+	}
+}
+
+extern void clutterRegs(void);
+
+void TestTasklo(void)
+{
+	while(1)
+	{
+		OS_SetAlarm(OSALMTestlo,3);
+		OS_WaitAlarm(OSALMTestlo);
+		clutterRegs();
+
+	}
+}
 
 
 #endif // OS_DO_TESTSUITE == 1

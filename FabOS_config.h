@@ -8,9 +8,9 @@
 
 // *********  USER Configurable Block BEGIN
 
-#define OS_NUMTASKS  3 // Number of (OS_Create)Tasks ; never >64 (idle task is not counted here!)
+#define OS_NUMTASKS  5 // Number of (OS_Create)Tasks ; never >64 (idle task is not counted here!)
 #define OS_NUMMUTEX  3 // Number of Mutexes
-#define OS_NUMALARMS 5 // Number of Alarms
+#define OS_NUMALARMS 6 // Number of Alarms
 
 #if defined (__AVR_ATmega32__)
 	#define OS_ScheduleISR 			TIMER1_COMPA_vect // Interrupt Vector used for OS-tick generation (check out CustomOS_ISRCode if you want to add isr code)
@@ -22,8 +22,10 @@
 	#define OS_PREVENTSCHEDULING 	TIMSK1 &= ~(1<<OCIE1A); // turn Timer Interrupt OFF
 #elif defined (__AVR_ATxmega32A4__)
 	#define OS_ScheduleISR 			TCC1_CCA_vect
-	#define OS_ALLOWSCHEDULING 		TCC1.INTCTRLB |= 3 ;//;	// turn Timer Interrupt ON
-	#define OS_PREVENTSCHEDULING 	TCC1.INTCTRLB &= ~3 ; // turn Timer Interrupt OFF
+	#define OS_ALLOWSCHEDULING 		sei() ;//;	// turn Timer Interrupt ON
+	#define OS_PREVENTSCHEDULING 	cli() ; // turn Timer Interrupt OFF
+//	#define OS_ALLOWSCHEDULING 		TCC1.INTCTRLB |= 3 ;//;	// turn Timer Interrupt ON
+//	#define OS_PREVENTSCHEDULING 	TCC1.INTCTRLB &= ~3 ; // turn Timer Interrupt OFF
 #else
 	#error "MCU Timer ISR not defined. Set correct ISR vector in FabOS_config.h"
 #endif

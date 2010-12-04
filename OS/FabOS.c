@@ -85,7 +85,7 @@ void OS_Int_ProcessAlarms(void)
 
 void OS_Reschedule(void) //with "__attribute__ ((naked))"
 {
-	OS_PREVENTSCHEDULING
+	OS_PREVENTSCHEDULING;
 	
 	OS_Int_saveCPUContext() ; 
 	MyOS.Stacks[MyOS.CurrTask] = SP ; // catch the SP before we (possibly) do anything with it.
@@ -331,8 +331,6 @@ uint8_t OS_WaitEvent(uint8_t EventMask) //returns event(s), which lead to execut
 
 void OS_SetAlarm(uint8_t AlarmID, OS_TypeAlarmTick_t numTicks ) // set Alarm for the future and continue // set alarm to 0 disable an alarm.
 {
-	OS_PREVENTSCHEDULING;
-	OS_TRACE(29);
 #if OS_USEEXTCHECKS == 1
 	if(AlarmID >= OS_NUMALARMS)// check for ID out of range
 	{
@@ -340,6 +338,8 @@ void OS_SetAlarm(uint8_t AlarmID, OS_TypeAlarmTick_t numTicks ) // set Alarm for
 		return;
 	}
 #endif	
+	OS_PREVENTSCHEDULING;
+	OS_TRACE(29);
 	MyOS.Alarms[AlarmID].AlarmTicks = numTicks ;
 	OS_ALLOWSCHEDULING;
 }
@@ -373,7 +373,6 @@ void OS_WaitAlarm(uint8_t AlarmID) // Wait for any Alarm set by OS_SetAlarm
 		OS_ErrorHook(8); // OS_WaitAlarm: Alarm was not active
 #endif
 		OS_ALLOWSCHEDULING; // just continue
-		return;  
 	}
 	else
 	{
@@ -500,7 +499,7 @@ uint8_t OS_WaitEventTimeout(uint8_t EventMask, uint8_t AlarmID, OS_TypeAlarmTick
 	else
 	{
 		// timeout occured
-		return 0;
+		return ret;
 	}
 }
 #endif

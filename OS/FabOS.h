@@ -75,7 +75,7 @@ extern FabOS_t MyOS;
 
 #define OS_DeclareQueue(NAME,COUNT,CHUNK) uint8_t OSQD##NAME[(COUNT+1)*CHUNK]; OS_Queue_t NAME = {0,0,CHUNK,(COUNT+1)*CHUNK,OSQD##NAME}
 
-#define OS_DeclareTask(NAME,STACKSIZE) void NAME(void); uint8_t OSStack##NAME[STACKSIZE];
+#define OS_DeclareTask(NAME,STACKSIZE) void NAME(void)__attribute__ ((naked)); uint8_t OSStack##NAME[STACKSIZE];
 
 #define OS_CreateTask(NAME, PRIO)  OS_TaskCreateInt(NAME, PRIO, OSStack##NAME , sizeof(OSStack##NAME))
 
@@ -197,7 +197,8 @@ asm volatile( \
 	push r30\n\t\
 	push r31\n\t\
 	in r0,0x3f\n\t\
-	push r0\n\t");
+	push r0\n\t\
+	clr r1\n\t");
 
 // Restore all AVR CPU Registers. The first two lines
 // restore the status register.

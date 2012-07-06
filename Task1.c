@@ -1,7 +1,7 @@
 /*
 	FabOS example File
 
-	(c) 2008-2010 Fabian Huslik
+	(c) 2008-2012 Fabian Huslik
 
 	Please change this file to your needs.
 */

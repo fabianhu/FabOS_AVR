@@ -1,7 +1,7 @@
 /*
 	FabOS for ATMEL AVR user configuration file
 	
-	(c) 2008-2010 Fabian Huslik
+	(c) 2008-2012 Fabian Huslik
 
 	Please change this file to your needs.
 */
@@ -24,7 +24,7 @@
 	#define OS_ScheduleISR 			TCC1_CCA_vect
 	#define OS_ALLOWSCHEDULING 		sei() ;//;	// turn Timer Interrupt ON
 	#define OS_PREVENTSCHEDULING 	cli() ; // turn Timer Interrupt OFF
-//	#define OS_ALLOWSCHEDULING 		TCC1.INTCTRLB |= 3 ;//;	// turn Timer Interrupt ON
+//	#define OS_ALLOWSCHEDULING 		TCC1.INTCTRLB |= 3 ;//;	// turn Timer Interrupt ON // DO NOT USE ON XMEGA (possible hangup due to ISR engine on chip)
 //	#define OS_PREVENTSCHEDULING 	TCC1.INTCTRLB &= ~3 ; // turn Timer Interrupt OFF
 #else
 	#error "MCU Timer ISR not defined. Set correct ISR vector in FabOS_config.h"
@@ -64,4 +64,4 @@
 
 // *********  USER Configurable Block END 
 
-#define OS_DO_TESTSUITE 1	// compile and execute the automated software tests. Set to 0 for production use of OS.
+#define OS_DO_TESTSUITE 0	// compile and execute the automated software tests. Set to 0 for production use of OS.

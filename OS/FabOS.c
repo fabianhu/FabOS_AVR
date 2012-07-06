@@ -1,7 +1,7 @@
 /*
 	FabOS for ATMEL AVR
-	
-	(c) 2008-2010 Fabian Huslik
+
+	(c) 2008-2012 Fabian Huslik
 
 	This software is free for use in private, educational or evaluation applications.
 	For commercial use a license is necessary.
@@ -37,7 +37,7 @@ extern unsigned char __heap_start;
 // Or use "register unsigned char counter asm("r3")";  Typically, it should be safe to use r2 through r7 that way.
 ISR(OS_ScheduleISR) //__attribute__ ((naked,signal)) // Timer isr
 {
-	OS_Int_saveCPUContext() ; 
+	OS_Int_saveCPUContext() ;
 	MyOS.Stacks[MyOS.CurrTask] = SP ; // catch the SP before we (possibly) do anything with it.
 
 	OS_TRACE(1);
@@ -48,7 +48,7 @@ ISR(OS_ScheduleISR) //__attribute__ ((naked,signal)) // Timer isr
 #if OS_USECLOCK == 1
 	MyOS.OSTicks++; 	// tick the RT-clock...
 #endif
-	
+
 	OS_Int_ProcessAlarms(); // Calculate alarms; function uses stack
 	OS_TRACE(3);
 
@@ -69,7 +69,7 @@ void OS_Int_ProcessAlarms(void)
 
 	// handling of OS_Wait / Alarms
 	for(alarmID=0; alarmID < OS_NUMALARMS; alarmID++ )
-	{ 
+	{
 		if( MyOS.Alarms[alarmID].AlarmTicks > 0 ) // this task has to wait
 		{
 			OS_TRACE(5);
@@ -86,8 +86,8 @@ void OS_Int_ProcessAlarms(void)
 void OS_Reschedule(void) //with "__attribute__ ((naked))"
 {
 	OS_PREVENTSCHEDULING;
-	
-	OS_Int_saveCPUContext() ; 
+
+	OS_Int_saveCPUContext() ;
 	MyOS.Stacks[MyOS.CurrTask] = SP ; // catch the SP before we (possibly) do anything with it.
 
 	OS_TRACE(7);
@@ -98,8 +98,8 @@ void OS_Reschedule(void) //with "__attribute__ ((naked))"
 	OS_TRACE(8);
 
 	SP = MyOS.Stacks[MyOS.CurrTask] ;// set Stack pointer
-	OS_Int_restoreCPUContext() ;
-	
+	OS_Int_restoreCPUContext() ; // do NEVER ANYTHING, what changes register content after this instruction!
+
 	OS_ALLOWSCHEDULING;
 	asm volatile("ret"); // return from interrupt, even if not in Interrupt. Just to ensure, that the ISR is left.
 }
@@ -110,13 +110,13 @@ int8_t OS_GetNextTaskNumber() // which is the next task (ready and highest (= ri
 	uint8_t	next= OS_NUMTASKS; // NO task is ready, which one to execute?? the idle task !!;
 
 	OS_TypeTaskBits_t ReadyMask = MyOS.TaskReadyBits; // make working copy
-	
+
 	OS_TRACE(9);
 
 	for (Task=0;Task<OS_NUMTASKS;Task++)
 	{
 		if (ReadyMask & 0x01) // last bit set
-		{	
+		{
 			OS_TRACE(10);
 			next =  Task; // this task is the one to be executed
 			break;
@@ -138,7 +138,7 @@ int8_t OS_GetNextTaskNumber() // which is the next task (ready and highest (= ri
 		{
 			OS_TRACE(13);
 			// which task is blocking it?
-			next = MyOS.MutexOwnedByTask[MyOS.MutexTaskWaiting[next]]; 
+			next = MyOS.MutexOwnedByTask[MyOS.MutexTaskWaiting[next]];
 			// the blocker gets the run.
 			// this is also a priority inversion.
 			if(((1<<next)&MyOS.TaskReadyBits) == 0)  // special case, where the blocker is not ready to run (somehow illegal waiting inside mutex)
@@ -171,7 +171,7 @@ void OS_TaskCreateInt( void (*t)(), uint8_t TaskID, uint8_t *stack, uint16_t sta
 	{
 		stack[z] = 0;
 	}
-		
+
 	MyOS.TaskReadyBits |= 1<<TaskID ;  // indicate that the task exists and is ready to run.
 
 	MyOS.Stacks[TaskID] = (uint16_t)stack + stackSize - 1 ; // Point the task's SP to the top address of the array that represents its stack.
@@ -189,11 +189,11 @@ void OS_StartExecution()
 	uint8_t i;
 	OS_TRACE(16);
 	for(i=0; i < OS_NUMTASKS+1; i++ ) // init mutexes
-	{ 
+	{
 		MyOS.MutexTaskWaiting[i] = 0xff;
 	}
-	for(i=0; i < OS_NUMMUTEX; i++ ) 
-	{ 
+	for(i=0; i < OS_NUMMUTEX; i++ )
+	{
 		MyOS.MutexOwnedByTask[i] = 0xff;
 	}
 
@@ -213,9 +213,10 @@ void OS_StartExecution()
 
 	//store THIS context for idling!!
 	MyOS.CurrTask = OS_NUMTASKS;
-	OS_Reschedule(); // Here every task is executed at least once.
 	OS_ALLOWSCHEDULING; // the stored context has the interrupts OFF!
 	sei();
+	OS_Reschedule(); // Here every task is executed at least once.
+
 }
 
 
@@ -293,17 +294,17 @@ void OS_SetEvent(uint8_t TaskID, uint8_t EventMask) // Set one or more events
 uint8_t OS_WaitEvent(uint8_t EventMask) //returns event(s), which lead to execution
 {
 #if OS_USEEXTCHECKS == 1
-	if(MyOS.CurrTask == OS_NUMTASKS) 
+	if(MyOS.CurrTask == OS_NUMTASKS)
 	{
 		OS_ErrorHook(2);// OS_WaitEvent: waiting in idle is not allowed
-		return 0; 
+		return 0;
 	}
 #endif
 
 	uint8_t ret;
 	OS_PREVENTSCHEDULING;
 	OS_TRACE(25);
-	
+
 	if(!(EventMask & MyOS.EventMask[MyOS.CurrTask])) // This task is Not having one of these events active
 	{
 		OS_TRACE(26);
@@ -352,16 +353,16 @@ void OS_WaitAlarm(uint8_t AlarmID) // Wait for any Alarm set by OS_SetAlarm
 		OS_ErrorHook(7); // ID bigger than array size
 		return;
 	}
-	if(MyOS.CurrTask == OS_NUMTASKS) 
+	if(MyOS.CurrTask == OS_NUMTASKS)
 	{
 		OS_ErrorHook(4);// OS_WaitAlarm: waiting in idle is not allowed
-		return;  
+		return;
 	}
 	if(MyOS.Alarms[AlarmID].TaskID != MyOS.CurrTask) // Alarm is not assigned!
 	{
 		OS_TRACE(30);
 		OS_ErrorHook(9); // OS_WaitAlarm: Alarm is not assigned to the task
-		return;  
+		return;
 	}
 #endif
 
@@ -378,7 +379,7 @@ void OS_WaitAlarm(uint8_t AlarmID) // Wait for any Alarm set by OS_SetAlarm
 	{
 		OS_TRACE(32);
 		MyOS.TaskReadyBits &= ~(1<<MyOS.CurrTask) ;  // Disable this task
-		OS_Reschedule();  // re-schedule; let the others run...	
+		OS_Reschedule();  // re-schedule; let the others run...
 	}
 }
 
@@ -416,7 +417,7 @@ uint8_t OS_QueueIn(OS_Queue_t* pQueue , uint8_t* pByte)
 	OS_ALLOWSCHEDULING;
 	return 0;
 }
- 
+
 uint8_t OS_QueueOut(OS_Queue_t* pQueue , uint8_t* pByte)
 {
 	uint8_t i;
@@ -459,7 +460,7 @@ uint8_t OS_GetQueueSpace(OS_Queue_t* pQueue)
 uint16_t OS_GetUnusedStack (uint8_t TaskID)
 {
    uint16_t unused = 0;
-   volatile uint8_t *p = MyOS.StackStart[TaskID]; 
+   volatile uint8_t *p = MyOS.StackStart[TaskID];
 
    do
    {

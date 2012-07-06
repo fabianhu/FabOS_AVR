@@ -188,7 +188,7 @@ void OS_ErrorHook(uint8_t ErrNo)
 			// OS_MutexRelease: invalid Mutex number
 			break;
 		case 7:
-			// OS_Alarm misconfiguration
+			// OS_Alarm misconfiguration / ID bigger than array size
 			break;
 		case 8:
 			// OS_WaitAlarm: Alarm was not active

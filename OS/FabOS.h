@@ -1,6 +1,6 @@
 /*
 	FabOS for ATMEL AVR
-	
+
 	(c) 2008-2010 Fabian Huslik
 
 	This software is free for use in private, educational or evaluation applications.
@@ -75,7 +75,7 @@ extern FabOS_t MyOS;
 
 #define OS_DeclareQueue(NAME,COUNT,CHUNK) uint8_t OSQD##NAME[(COUNT+1)*CHUNK]; OS_Queue_t NAME = {0,0,CHUNK,(COUNT+1)*CHUNK,OSQD##NAME}
 
-#define OS_DeclareTask(NAME,STACKSIZE) void NAME(void); uint8_t OSStack##NAME[STACKSIZE];
+#define OS_DeclareTask(NAME,STACKSIZE) void NAME(void); uint8_t OSStack##NAME[STACKSIZE]
 
 #define OS_CreateTask(NAME, PRIO)  OS_TaskCreateInt(NAME, PRIO, OSStack##NAME , sizeof(OSStack##NAME))
 
@@ -278,7 +278,7 @@ asm volatile( \
 */
 
 
-#if NUMMUTEX > NUMTASKS 
+#if OS_NUMMUTEX > OS_NUMTASKS 
 	#warning "more mutexes than tasks? are you serious with that concept?"
 #endif
 

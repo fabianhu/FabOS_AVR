@@ -1,7 +1,7 @@
 /*
 	FabOS for ATMEL AVR
 
-	(c) 2008-2012 Fabian Huslik
+	(c) 2008-2010 Fabian Huslik
 
 	This software is free for use in private, educational or evaluation applications.
 	For commercial use a license is necessary.
@@ -64,6 +64,7 @@ ISR(OS_ScheduleISR) //__attribute__ ((naked,signal)) // Timer isr
 
 void OS_Int_ProcessAlarms(void)
 {
+
 	uint8_t alarmID;
 	OS_TRACE(4);
 
@@ -85,7 +86,7 @@ void OS_Int_ProcessAlarms(void)
 
 void OS_Reschedule(void) //with "__attribute__ ((naked))"
 {
-	OS_PREVENTSCHEDULING;
+	OS_DISABLEALLINTERRUPTS;
 
 	OS_Int_saveCPUContext() ;
 	MyOS.Stacks[MyOS.CurrTask] = SP ; // catch the SP before we (possibly) do anything with it.
@@ -100,7 +101,7 @@ void OS_Reschedule(void) //with "__attribute__ ((naked))"
 	SP = MyOS.Stacks[MyOS.CurrTask] ;// set Stack pointer
 	OS_Int_restoreCPUContext() ; // do NEVER ANYTHING, what changes register content after this instruction!
 
-	OS_ALLOWSCHEDULING;
+	OS_ENABLEALLINTERRUPTS; // this covers the sei() problem...
 	asm volatile("ret"); // return from interrupt, even if not in Interrupt. Just to ensure, that the ISR is left.
 }
 
@@ -145,6 +146,7 @@ int8_t OS_GetNextTaskNumber() // which is the next task (ready and highest (= ri
 			{
 				OS_TRACE(14);
 				next = OS_NUMTASKS; // the idle task gets the run...
+				OS_ErrorHook(77);
 			}
 		}
 	}
@@ -476,7 +478,7 @@ uint16_t OS_GetUnusedStack (uint8_t TaskID)
 
 #if OS_USECLOCK == 1
 // fills given variable with the OS ticks since start.
-void OS_GetTicks(uint32_t* pTime) 
+void OS_GetTicks(uint32_t* pTime)
 {
 	OS_PREVENTSCHEDULING;
 		*pTime = MyOS.OSTicks;
@@ -490,18 +492,38 @@ uint8_t OS_WaitEventTimeout(uint8_t EventMask, uint8_t AlarmID, OS_TypeAlarmTick
 {
 	uint8_t ret;
 	OS_SetAlarm(AlarmID,numTicks); // set timeout
-	ret = OS_WaitEvent(EventMask);
-	if(ret & EventMask)
+
+	OS_PREVENTSCHEDULING;
+	if((EventMask & MyOS.EventMask[MyOS.CurrTask]) == 0) // This task is Not having one of these events currently active
+	{
+		OS_TRACE(26);
+		MyOS.EventWaiting[MyOS.CurrTask] = EventMask; // remember what this task is waiting for
+		// no event yet... waiting
+		MyOS.TaskReadyBits &= ~(1<<MyOS.CurrTask) ;     // indicate that this task is not ready to run.
+
+		OS_Reschedule() ; // re-schedule; will be waked up here by "SetEvent" or alarm
+		OS_PREVENTSCHEDULING;
+		OS_TRACE(27);
+
+		MyOS.EventWaiting[MyOS.CurrTask] = 0; // no more waiting!
+	}
+	ret = MyOS.EventMask[MyOS.CurrTask] & EventMask;
+	// clear the events:
+	MyOS.EventMask[MyOS.CurrTask] &= ~EventMask; // the actual events minus the ones, which have been waited for
+
+	if(ret)
 	{
 		// event occured
-		OS_SetAlarm(AlarmID,0); // disable timeout
-		return ret;
+		MyOS.Alarms[AlarmID].AlarmTicks = 0; // disable timeout
 	}
 	else
 	{
 		// timeout occured
-		return ret;
+		asm("nop");
 	}
+
+	OS_ALLOWSCHEDULING;
+	return ret;
 }
 #endif
 

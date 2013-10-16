@@ -1,7 +1,7 @@
 /*
 	FabOS for ATMEL AVR user configuration file
 	
-	(c) 2008-2012 Fabian Huslik
+	(c) 2008-2013 Fabian Huslik
 
 	Please change this file to your needs.
 */

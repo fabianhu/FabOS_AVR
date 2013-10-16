@@ -1,7 +1,7 @@
 /*
 	FabOS for ATMEL AVR
 
-	(c) 2008-2010 Fabian Huslik
+	(c) 2008-2013 Fabian Huslik
 
 	This software is free for use in private, educational or evaluation applications.
 	For commercial use a license is necessary.
@@ -86,7 +86,7 @@ void OS_Int_ProcessAlarms(void)
 
 void OS_Reschedule(void) //with "__attribute__ ((naked))"
 {
-	OS_DISABLEALLINTERRUPTS;
+	OS_PREVENTSCHEDULING;
 
 	OS_Int_saveCPUContext() ;
 	MyOS.Stacks[MyOS.CurrTask] = SP ; // catch the SP before we (possibly) do anything with it.
@@ -98,10 +98,11 @@ void OS_Reschedule(void) //with "__attribute__ ((naked))"
 
 	OS_TRACE(8);
 
+	asm volatile("cli");
+	OS_ALLOWSCHEDULING;
 	SP = MyOS.Stacks[MyOS.CurrTask] ;// set Stack pointer
 	OS_Int_restoreCPUContext() ; // do NEVER ANYTHING, what changes register content after this instruction!
-
-	OS_ENABLEALLINTERRUPTS; // this covers the sei() problem...
+	asm volatile("sei"); // ISRs might be off due to context stored in ISR with disabled interrupts on "classic AVRs"
 	asm volatile("ret"); // return from interrupt, even if not in Interrupt. Just to ensure, that the ISR is left.
 }
 

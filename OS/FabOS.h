@@ -6,10 +6,10 @@
 	This software is free for use in private, educational or evaluation applications.
 	For commercial use a license is necessary.
 
-	contact FabOS@huslik-elektronik.de for support and license.
+	contact FabOS@huslik.net for support and license.
 
 	In this file there should be no need to change anything.
-	If you have to change something, please let the author know via FabOS@huslik-elektronik.de.
+	If you have to change something, please let the author know via FabOS@huslik.net.
 
 */
 #ifndef FABOS_H
@@ -162,7 +162,7 @@ void OS_Int_ProcessAlarms(void);
 
 // Save all CPU registers on the AVR chip.
 // The last two lines save the status register.
-#define OS_Int_saveCPUContext() \
+#define OS_INT_SAVE_CONTEXT() \
 asm volatile( \
 "	push r0\n\t\
 	push r1\n\t\
@@ -202,7 +202,7 @@ asm volatile( \
 
 // Restore all AVR CPU Registers. The first two lines
 // restore the status register.
-#define OS_Int_restoreCPUContext() \
+#define OS_INT_RESTORE_CONTEXT() \
 asm volatile( \
 "	pop r0\n\t\
 	out 0x3f,r0\n\t\

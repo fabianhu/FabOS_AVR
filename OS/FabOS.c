@@ -6,10 +6,10 @@
 	This software is free for use in private, educational or evaluation applications.
 	For commercial use a license is necessary.
 
-	contact FabOS@huslik-elektronik.de for support and license.
+	contact FabOS@huslik.net for support and license.
 
 	In this file there should be no need to change anything.
-	If you have to change something, please let the author know via FabOS@huslik-elektronik.de.
+	If you have to change something, please let the author know via FabOS@huslik.net.
 
 */
 
@@ -37,7 +37,7 @@ extern unsigned char __heap_start;
 // Or use "register unsigned char counter asm("r3")";  Typically, it should be safe to use r2 through r7 that way.
 ISR(OS_ScheduleISR) //__attribute__ ((naked,signal)) // Timer isr
 {
-	OS_Int_saveCPUContext() ;
+	OS_INT_SAVE_CONTEXT() ;
 	MyOS.Stacks[MyOS.CurrTask] = SP ; // catch the SP before we (possibly) do anything with it.
 
 	OS_TRACE(1);
@@ -56,7 +56,7 @@ ISR(OS_ScheduleISR) //__attribute__ ((naked,signal)) // Timer isr
 	MyOS.CurrTask = OS_GetNextTaskNumber() ;
 
 	SP = MyOS.Stacks[MyOS.CurrTask] ;
-	OS_Int_restoreCPUContext() ;
+	OS_INT_RESTORE_CONTEXT() ;
 	asm volatile("reti");  // at the XMEGA the I in SREG is statically ON before and after RETI.
 }
 
@@ -88,7 +88,7 @@ void OS_Reschedule(void) //with "__attribute__ ((naked))"
 {
 	OS_PREVENTSCHEDULING;
 
-	OS_Int_saveCPUContext() ;
+	OS_INT_SAVE_CONTEXT() ;
 	MyOS.Stacks[MyOS.CurrTask] = SP ; // catch the SP before we (possibly) do anything with it.
 
 	OS_TRACE(7);
@@ -98,12 +98,12 @@ void OS_Reschedule(void) //with "__attribute__ ((naked))"
 
 	OS_TRACE(8);
 
-	asm volatile("cli");
-	#ifndef OS_XMEGASTARTUP
-	OS_ALLOWSCHEDULING; //only if not XMEGA:  // xmega does not enter the isr state via cli !!!
+	asm volatile("cli"); //enter the isr-state on AVR 
+	#ifndef OS_XMEGA
+		OS_ALLOWSCHEDULING; // Enable timer isr with global isr disabled; only if not XMEGA: xmega does not enter the isr state via cli !!!
 	#endif	
 	SP = MyOS.Stacks[MyOS.CurrTask] ;// set Stack pointer
-	OS_Int_restoreCPUContext() ; // do NEVER ANYTHING, what changes register content after this instruction!
+	OS_INT_RESTORE_CONTEXT() ; // do NEVER ANYTHING, what changes register content after this function!
 	asm volatile("sei"); // ISRs might be off due to context stored in ISR with disabled interrupts on "classic AVRs"
 	asm volatile("ret"); // return from interrupt, even if not in Interrupt. Just to ensure, that the ISR is left.
 }

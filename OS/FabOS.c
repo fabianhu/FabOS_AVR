@@ -99,7 +99,9 @@ void OS_Reschedule(void) //with "__attribute__ ((naked))"
 	OS_TRACE(8);
 
 	asm volatile("cli");
-	OS_ALLOWSCHEDULING;
+	#ifndef OS_XMEGASTARTUP
+	OS_ALLOWSCHEDULING; //only if not XMEGA:  // xmega does not enter the isr state via cli !!!
+	#endif	
 	SP = MyOS.Stacks[MyOS.CurrTask] ;// set Stack pointer
 	OS_Int_restoreCPUContext() ; // do NEVER ANYTHING, what changes register content after this instruction!
 	asm volatile("sei"); // ISRs might be off due to context stored in ISR with disabled interrupts on "classic AVRs"

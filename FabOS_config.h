@@ -21,7 +21,8 @@
 	#define OS_ALLOWSCHEDULING 		TIMSK1 |= (1<<OCIE1A);	// turn Timer Interrupt ON
 	#define OS_PREVENTSCHEDULING 	TIMSK1 &= ~(1<<OCIE1A); // turn Timer Interrupt OFF
 #elif defined (__AVR_ATxmega32A4__)
-	#define OS_ScheduleISR 			TCC1_CCA_vect
+	#define OS_XMEGASTARTUP
+    #define OS_ScheduleISR 			TCC1_CCA_vect
 	#define OS_ALLOWSCHEDULING 		sei() ;//;	// turn Timer Interrupt ON
 	#define OS_PREVENTSCHEDULING 	cli() ; // turn Timer Interrupt OFF
 //	#define OS_ALLOWSCHEDULING 		TCC1.INTCTRLB |= 3 ;//;	// turn Timer Interrupt ON // DO NOT USE ON XMEGA (possible hangup due to ISR engine on chip)

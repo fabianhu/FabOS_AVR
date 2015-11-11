@@ -16,6 +16,17 @@
 #include "FabOS.h"
 #include "../FabOS_config.h"
 
+
+// *********  internal OS functions, not to be called by the user.
+ISR (OS_ScheduleISR)__attribute__ ((naked,signal)); // OS tick interrupt ISR (vector #defined in FabOS_config.h)
+
+static void OS_Reschedule(void)__attribute__ ((naked)); // internal: Trigger re-scheduling
+
+static int8_t OS_GetNextTaskNumber(); // internal: get the next task to be run// which is the next task (ready and highest (= rightmost); prio);?
+
+static void OS_Int_ProcessAlarms(void);
+
+
 FabOS_t MyOS; // the global instance of the OS struct
 
 #if OS_TRACE_ON == 1
@@ -29,6 +40,10 @@ FabOS_t MyOS; // the global instance of the OS struct
 
 // From linker script
 extern unsigned char __heap_start;
+
+
+
+
 
 // *********  Timer Interrupt
 // The naked attribute tells the compiler not to add code to push the registers it uses onto the stack or even add a RETI instruction at the end. 
@@ -62,7 +77,7 @@ ISR(OS_ScheduleISR) //__attribute__ ((naked,signal)) // Timer isr
 
 // *********  Internal scheduling and priority stuff
 
-void OS_Int_ProcessAlarms(void)
+static void OS_Int_ProcessAlarms(void)
 {
 
 	uint8_t alarmID;
@@ -84,7 +99,7 @@ void OS_Int_ProcessAlarms(void)
 	}
 }
 
-void OS_Reschedule(void) //with "__attribute__ ((naked))"
+static void OS_Reschedule(void) //with "__attribute__ ((naked))"
 {
 	OS_PREVENTSCHEDULING;
 
@@ -108,7 +123,7 @@ void OS_Reschedule(void) //with "__attribute__ ((naked))"
 	asm volatile("ret"); // return from interrupt, even if not in Interrupt. Just to ensure, that the ISR is left.
 }
 
-int8_t OS_GetNextTaskNumber() // which is the next task (ready and highest (= rightmost) prio)?
+static int8_t OS_GetNextTaskNumber() // which is the next task (ready and highest (= rightmost) prio)?
 {
 	uint8_t Task;
 	uint8_t	next= OS_NUMTASKS; // NO task is ready, which one to execute?? the idle task !!;

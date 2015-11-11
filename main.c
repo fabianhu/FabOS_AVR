@@ -62,6 +62,12 @@ void OS_CustomISRCode(void)
 
 #elif defined (__AVR_ATmega644P__)
 	TCNT1 = 0;
+
+#elif defined (__AVR_ATmega168__)
+	TCNT1 = 0;
+	
+#elif defined (__AVR_ATmega2560__)
+	TCNT1 = 0;
 #else
 	#error MCU not yet supported, you must configure a timer yourself.
 #endif
@@ -90,7 +96,23 @@ void CPU_init(void)
 	OCR1A  = 12500; //interrupt every 10ms at 10MHz
 
 	TIMSK1 |= 1<<OCIE1A;
+	
+#elif defined (__AVR_ATmega168__)
 
+	// init cyclic ISR
+	TCCR1A = 0b00000000;
+	TCCR1B = 0b00000010; //1250 kHZ timer ck
+	OCR1A  = 12500; //interrupt every 10ms at 10MHz
+
+TIMSK1 |= 1<<OCIE1A;
+#elif defined (__AVR_ATmega2560__)
+
+	// init cyclic ISR
+	TCCR1A = 0b00000000;
+	TCCR1B = 0b00000010; //1250 kHZ timer ck
+	OCR1A  = 12500; //interrupt every 10ms at 10MHz
+
+	TIMSK1 |= 1<<OCIE1A;
 	
 #elif defined (__AVR_ATxmega32A4__)
 	// set ck = 32MHz,

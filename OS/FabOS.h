@@ -112,8 +112,13 @@ uint8_t OS_QueueIn(OS_Queue_t* pQueue , uint8_t *pData); // Put byte into queue,
 
 uint8_t OS_QueueOut(OS_Queue_t* pQueue, uint8_t *pData); // Get a byte out of the queue, return 1 if q empty.
 
+
+void OS_TaskCreateInt( void (*t)(), uint8_t taskNum, uint8_t *stack, uint16_t stackSize ) ; // Create the task internal
+
 #if OS_USEEXTCHECKS == 1
-	void OS_ErrorHook(uint8_t);
+	void OS_ErrorHook(uint8_t ErrNo);
+#else
+	static inline void OS_ErrorHook(uint8_t ErrNo){};
 #endif
 
 #if OS_USEMEMCHECKS == 1
@@ -140,19 +145,6 @@ uint8_t OS_WaitEventTimeout(uint8_t EventMask, uint8_t AlarmID, OS_TypeAlarmTick
 		OS_SetAlarm(AlarmID,numTicks);\
 		OS_WaitAlarm(AlarmID);\
 		}while(0)
-
-
-
-// *********  internal OS functions, not to be called by the user.
-ISR (OS_ScheduleISR)__attribute__ ((naked,signal)); // OS tick interrupt ISR (vector #defined in FabOS_config.h)
-
-void OS_TaskCreateInt( void (*t)(), uint8_t taskNum, uint8_t *stack, uint16_t stackSize ) ; // Create the task internal
-
-void OS_Reschedule(void)__attribute__ ((naked)); // internal: Trigger re-scheduling
-
-int8_t OS_GetNextTaskNumber(); // internal: get the next task to be run// which is the next task (ready and highest (= rightmost); prio);?
-
-void OS_Int_ProcessAlarms(void);
 
 
 // *********  CPU related assembler stuff

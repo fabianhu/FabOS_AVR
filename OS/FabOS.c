@@ -3,10 +3,7 @@
 
 	(c) 2008-2013 Fabian Huslik
 
-	This software is free for use in private, educational or evaluation applications.
-	For commercial use a license is necessary.
-
-	contact FabOS@huslik.net for support and license.
+	This is free software according GNU GENERAL PUBLIC LICENSE Version 3.
 
 	In this file there should be no need to change anything.
 	If you have to change something, please let the author know via FabOS@huslik.net.

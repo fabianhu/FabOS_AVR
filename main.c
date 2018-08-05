@@ -2,6 +2,7 @@
 	FabOS example implementation
 
 	(c) 2008-2013 Fabian Huslik
+		This is free software according GNU GENERAL PUBLIC LICENSE Version 3.
 
 	Please change this file to your needs.
 */

@@ -4,6 +4,7 @@
 	tested on WinAVR 20090913 and Mega32 / ATXMEGA32A4
 	
 	(c) 2008-2010 Fabian Huslik
+		This is free software according GNU GENERAL PUBLIC LICENSE Version 3.
 
 	This file implememts automated software testing of the OS modules.
 	This file should only be altered if really necessary.
